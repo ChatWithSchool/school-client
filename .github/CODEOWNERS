@@ -1,0 +1,10 @@
+# Replace @your-org/leads with the GitHub team of the team leads.
+/src/app/              @your-org/leads
+/src/api/apiSlice.ts   @your-org/leads
+/src/layout/           @your-org/leads
+/src/routes/           @your-org/leads
+/src/styles/           @your-org/leads
+/src/components/       @your-org/leads
+/tailwind.config.cjs   @your-org/leads
+/openapi/              @your-org/leads
+/.github/              @your-org/leads

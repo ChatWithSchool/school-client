@@ -1,0 +1,6 @@
+dist
+node_modules
+public
+openapi
+package-lock.json
+src/styles/theme.css

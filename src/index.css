@@ -1,0 +1,16 @@
+@import './styles/theme.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-page font-sans text-fg antialiased;
+  }
+  body {
+    @apply text-body;
+  }
+  :focus-visible {
+    @apply outline-none ring-4 ring-primary-500/35;
+  }
+}
