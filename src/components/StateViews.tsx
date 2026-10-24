@@ -16,7 +16,12 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
-/** The first-use EmptyState of components/ui. Without `text`, only the title is shown. */
+/**
+ * The first-use EmptyState of components/ui, with the old props. Without `text`, only the title
+ * is shown.
+ * @deprecated Use `EmptyState` from components/ui (`variant`, `title`, `text`, `action`). This
+ * wrapper stays for the existing screens only.
+ */
 export function EmptyState({
   title,
   text,

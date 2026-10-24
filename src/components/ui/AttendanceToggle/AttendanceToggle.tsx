@@ -1,5 +1,5 @@
 import * as RadixRadio from '@radix-ui/react-radio-group';
-import { forwardRef, useId, type ComponentPropsWithoutRef } from 'react';
+import { forwardRef, useId, useRef, type ComponentPropsWithoutRef } from 'react';
 import { cx } from '../../../styles/recipes';
 import { Icon } from '../../Icon';
 import { ATTENDANCE } from '../internal/attendance';
@@ -34,6 +34,8 @@ export type AttendanceToggleProps = Omit<
 /** The order of the segments: present first, at the start (on the right in RTL). */
 const OPTIONS = ['present', 'absent', 'late'] as const;
 
+const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
 const SIZE: Record<AttendanceToggleSize, string> = { M: 'h-10 px-3', L: 'h-12 px-4' };
 
 /**
@@ -54,11 +56,15 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
       disabled,
       className,
       'aria-describedby': describedBy,
+      onKeyDown,
+      onKeyUp,
       ...rest
     },
     ref,
   ) {
     const errorId = useId();
+    // true while an arrow key is down: Radix then clicks the item it focuses, and we cancel that
+    const arrowing = useRef(false);
     const saving = state === 'saving';
     const error = state === 'error';
     return (
@@ -74,6 +80,14 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
           value={value === 'none' ? '' : value}
           onValueChange={(v) => onValueChange(v as Exclude<AttendanceValue, 'none'>)}
           disabled={disabled}
+          onKeyDown={(e) => {
+            if (ARROWS.includes(e.key)) arrowing.current = true;
+            onKeyDown?.(e);
+          }}
+          onKeyUp={(e) => {
+            arrowing.current = false;
+            onKeyUp?.(e);
+          }}
           className={cx(
             'inline-flex overflow-hidden rounded-md border bg-surface',
             error ? 'border-danger-600' : 'border-line',
@@ -88,8 +102,10 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
               <RadixRadio.Item
                 key={key}
                 value={key}
-                // Radix checks the item that the arrow keys focus; this keeps the arrows to focus
-                onFocus={(e) => e.preventDefault()}
+                // Radix checks the item that the arrow keys focus (a click); the arrows only move
+                onClick={(e) => {
+                  if (arrowing.current) e.preventDefault();
+                }}
                 // Radix ignores Enter on a radio; here it chooses, as Space does
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') e.currentTarget.click();

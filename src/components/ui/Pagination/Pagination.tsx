@@ -74,6 +74,7 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagi
               </li>
             ) : (
               <li key={p}>
+                {/* 32×32 is above the 24×24 minimum of WCAG 2.5.8 */}
                 <button
                   type="button"
                   aria-label={`עמוד ${p}`}

@@ -23,4 +23,9 @@ describe('MetricCard', () => {
     expect(screen.queryByText('1')).toBeNull();
     expect(screen.getByText('טוען')).toBeInTheDocument();
   });
+
+  it('trendTone overrides the color of the trend', () => {
+    render(<MetricCard label="foo" value="1" trend="up" trendText="bar" trendTone="negative" />);
+    expect(screen.getByText('bar')).toHaveClass('text-danger-700');
+  });
 });

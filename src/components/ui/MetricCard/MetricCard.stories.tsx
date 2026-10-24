@@ -36,6 +36,17 @@ export const VariantsAndStates: Story = {
           <Demo label="loading">
             <MetricCard label="Lorem ipsum" value="94%" tone={tone} loading className="w-64" />
           </Demo>
+          <Demo label="Trend=up, trendTone=negative">
+            <MetricCard
+              label="Lorem ipsum"
+              value="12"
+              trend="up"
+              trendText="Lorem 3"
+              trendTone="negative"
+              tone={tone}
+              className="w-64"
+            />
+          </Demo>
         </Row>
       ))}
     </Stack>

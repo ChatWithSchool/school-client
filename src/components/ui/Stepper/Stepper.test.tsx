@@ -8,6 +8,8 @@ describe('Stepper', () => {
     expect(list).toBeInTheDocument();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(3);
+    // the connectors are inside the steps, not extra items of the list
+    expect(list.children).toHaveLength(3);
     expect(items[0]).toHaveTextContent('foo, הושלם');
     expect(items[1]).toHaveAttribute('aria-current', 'step');
     expect(items[1]).toHaveTextContent('2bar, שלב נוכחי');

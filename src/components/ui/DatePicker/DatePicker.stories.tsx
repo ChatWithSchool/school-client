@@ -17,6 +17,8 @@ function SingleDemo(props: { error?: string; defaultOpen?: boolean; empty?: bool
   return (
     <DatePicker
       label="Lorem"
+      // hidden inputs with yyyy-mm-dd, for a form
+      name="lorem"
       value={value}
       onChange={setValue}
       error={props.error}
@@ -34,6 +36,8 @@ function RangeDemo(props: { error?: string; defaultOpen?: boolean; empty?: boole
     <DatePicker
       mode="range"
       label="Lorem"
+      // hidden inputs with yyyy-mm-dd, for a form
+      name="lorem"
       value={value}
       onChange={setValue}
       error={props.error}

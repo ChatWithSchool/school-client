@@ -5,13 +5,15 @@ import { IconButton } from '../IconButton/IconButton';
 
 export type AlertTone = 'info' | 'success' | 'warning' | 'danger';
 
-export type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
-  tone?: AlertTone;
-  title?: ReactNode;
-  /** Figma `Dismissible: on`: shows a close button. Give `onDismiss` to hide the alert. */
-  dismissible?: boolean;
-  onDismiss?: () => void;
-};
+/** Figma `Dismissible`: a close button needs `onDismiss`, which hides the alert. */
+type AlertDismiss =
+  { dismissible: true; onDismiss: () => void } | { dismissible?: false; onDismiss?: never };
+
+export type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> &
+  AlertDismiss & {
+    tone?: AlertTone;
+    title?: ReactNode;
+  };
 
 /** The sign and the word of each tone: the icon is named, so color is never the only signal. */
 const TONE: Record<AlertTone, { box: string; icon: IconName; word: string }> = {

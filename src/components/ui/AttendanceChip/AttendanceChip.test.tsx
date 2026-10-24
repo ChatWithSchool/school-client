@@ -16,6 +16,6 @@ describe('AttendanceChip', () => {
 
   it('takes a custom word and the S size', () => {
     render(<AttendanceChip status="late" size="S" label="foo" />);
-    expect(screen.getByText('foo')).toHaveClass('text-caption');
+    expect(screen.getByText('foo')).toHaveClass('text-label');
   });
 });

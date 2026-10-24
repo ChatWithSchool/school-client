@@ -14,6 +14,7 @@ import {
   monthGrid,
   sameDay,
   startOfDay,
+  toIsoDate,
 } from '../internal/date';
 import { FieldLabel, FieldMessage } from '../internal/FieldParts';
 import { fieldBox, focusRing } from '../internal/styles';
@@ -32,6 +33,11 @@ type CommonProps = {
   className?: string;
   /** Figma `State: open`: open from the start (stories). */
   defaultOpen?: boolean;
+  /**
+   * Sends the value with a form, in hidden inputs as yyyy-mm-dd (empty when not chosen). A range
+   * sends two: `<name>-from` and `<name>-to`. A disabled field sends nothing.
+   */
+  name?: string;
 };
 
 /** Figma `Mode: single`: one day. */
@@ -53,10 +59,14 @@ export type DatePickerProps = SingleDatePickerProps | RangeDatePickerProps;
 const display = (p: DatePickerProps) => {
   if (p.mode === 'range') {
     const { from, to } = p.value;
-    return from ? `${formatDate(from)} – ${to ? formatDate(to) : ''}` : '';
+    // closed after the first day only: the first day, without a dangling dash
+    if (!from) return '';
+    return to ? `${formatDate(from)} – ${formatDate(to)}` : formatDate(from);
   }
   return p.value ? formatDate(p.value) : '';
 };
+
+const iso = (d: Date | null) => (d ? toIsoDate(d) : '');
 
 /**
  * A date field: a button with the chosen date that opens a month grid (Radix Popover). In the
@@ -65,7 +75,7 @@ const display = (p: DatePickerProps) => {
  */
 export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
   function DatePicker(props, ref) {
-    const { label, hint, error, disabled, required, id, className, defaultOpen } = props;
+    const { label, hint, error, disabled, required, id, className, defaultOpen, name } = props;
     const f = useField({ id, hint, error });
     const labelId = useId();
     const valueId = useId();
@@ -98,10 +108,13 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           {label}
         </FieldLabel>
         <Popover.Root open={open} onOpenChange={setOpen}>
+          {/* a combobox with a dialog popup, so it may carry aria-required (a button may not) */}
           <Popover.Trigger
             ref={ref}
+            role="combobox"
             disabled={disabled}
             {...f.inputProps}
+            aria-required={required || undefined}
             aria-labelledby={`${labelId} ${valueId}`}
             className={cx(
               fieldBox.base,
@@ -138,16 +151,30 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                     ? sameDay(d, props.value.from) || sameDay(d, props.value.to)
                     : sameDay(d, props.value)
                 }
-                inRange={(d) =>
-                  props.mode === 'range' && !!props.value.from && !!props.value.to
-                    ? d > props.value.from && d < props.value.to
-                    : false
-                }
+                inRange={(d) => {
+                  if (props.mode !== 'range' || !props.value.from || !props.value.to) return false;
+                  // whole days: a from or to with a time of day must not shift the range
+                  const t = startOfDay(d).getTime();
+                  return (
+                    t > startOfDay(props.value.from).getTime() &&
+                    t < startOfDay(props.value.to).getTime()
+                  );
+                }}
                 onPick={pick}
               />
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
+        {name &&
+          !disabled &&
+          (props.mode === 'range' ? (
+            <>
+              <input type="hidden" name={`${name}-from`} value={iso(props.value.from)} />
+              <input type="hidden" name={`${name}-to`} value={iso(props.value.to)} />
+            </>
+          ) : (
+            <input type="hidden" name={name} value={iso(props.value)} />
+          ))}
         <FieldMessage hintId={f.hintId} hint={hint} errorId={f.errorId} error={error} />
       </div>
     );
@@ -220,6 +247,7 @@ function Calendar({
       <table ref={grid} role="grid" aria-label={formatMonth(focused)} className="border-collapse">
         <thead>
           <tr>
+            {/* 32×32 days are above the 24×24 minimum of WCAG 2.5.8 */}
             {WEEKDAYS.map((d) => (
               <th key={d} scope="col" className="h-8 w-8 text-caption text-fg-muted">
                 {d}
@@ -235,12 +263,12 @@ function Calendar({
                 const selected = isSelected(day);
                 const mid = !selected && inRange(day);
                 return (
-                  <td key={j} className="p-0">
+                  // a td in a grid is a gridcell: the selection is on the cell, the button picks
+                  <td key={j} aria-selected={selected} className="p-0">
                     <button
                       type="button"
                       tabIndex={sameDay(day, focused) ? 0 : -1}
                       aria-label={formatLong(day)}
-                      aria-pressed={selected}
                       aria-current={sameDay(day, today) ? 'date' : undefined}
                       onClick={() => onPick(day)}
                       onKeyDown={keys}

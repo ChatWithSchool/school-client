@@ -10,7 +10,12 @@ type CommonProps = {
 };
 
 /** A static card (Figma `Interactive: off`): a div. */
-type StaticCardProps = CommonProps & HTMLAttributes<HTMLDivElement> & { interactive?: false };
+type StaticCardProps = CommonProps &
+  Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & {
+    interactive?: false;
+    /** A static card is not clickable: use `interactive` for a card that is clicked as a whole. */
+    onClick?: never;
+  };
 
 /**
  * A card that is clicked as a whole (Figma `Interactive: on`): a real button, so it has the

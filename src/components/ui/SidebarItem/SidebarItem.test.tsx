@@ -18,6 +18,8 @@ describe('SidebarItem', () => {
     renderItem(<SidebarItem to="/foo" icon="home" label="foo" badge={3} />);
     expect(screen.getByRole('link')).toHaveTextContent('3 חדשים');
     expect(screen.getByRole('link')).not.toHaveAttribute('aria-current');
+    // an inactive item has the secondary text color, as in the side menu of the app
+    expect(screen.getByRole('link')).toHaveClass('text-fg-secondary');
   });
 
   it('collapsed: the icon only, still named, the badge as a dot', () => {

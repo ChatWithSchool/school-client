@@ -54,4 +54,25 @@ describe('SearchField', () => {
     const { container } = render(<SearchField label="baz" scope="global" />);
     expect(container.querySelector('.bg-page')).not.toBeNull();
   });
+  it('aria-controls only while the list is shown; the status region stays mounted', async () => {
+    const { rerender } = render(<SearchField label="baz" results={RESULTS} />);
+    const input = screen.getByRole('combobox');
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute('aria-controls');
+    await userEvent.type(input, 'f');
+    expect(input).toHaveAttribute('aria-controls', screen.getByRole('listbox').id);
+    rerender(<SearchField label="baz" results={[]} />);
+    expect(input).not.toHaveAttribute('aria-controls');
+    expect(screen.getByRole('status')).toBe(status);
+    expect(status).toHaveTextContent('לא נמצאו תוצאות');
+  });
+
+  it('uncontrolled: picking a result puts its label in the field', async () => {
+    render(<SearchField label="baz" results={RESULTS} defaultValue="" />);
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'b');
+    await userEvent.click(screen.getByRole('option', { name: 'bar' }));
+    expect(input).toHaveValue('bar');
+  });
 });

@@ -107,7 +107,8 @@ export function AppShell() {
           }
         />
         {sub.length > 0 && (
-          <nav className="flex gap-1 border-b border-line bg-surface px-8" aria-label="תפריט משני">
+          // px-6, as the TopBar above, so the two rows line up
+          <nav className="flex gap-1 border-b border-line bg-surface px-6" aria-label="תפריט משני">
             {sub.map((s) => (
               <Link
                 key={s.screen}

@@ -29,16 +29,20 @@ export const Tag = forwardRef<HTMLSpanElement, TagProps>(function Tag(
     >
       {label}
       {canRemove && (
+        // the target is 24×24 (WCAG 2.5.8); -mx-1 lays it over the gap and the padding, so the
+        // tag keeps its size and the visible circle stays 16
         <button
           type="button"
           aria-label={`הסרת ${label}`}
           onClick={onRemove}
           className={cx(
-            'flex h-4 w-4 items-center justify-center rounded-full text-fg-secondary hover:bg-ink-300 hover:text-fg',
+            'group -mx-1 flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary',
             focusRing,
           )}
         >
-          <Icon name="x" size={14} />
+          <span className="flex h-4 w-4 items-center justify-center rounded-full group-hover:bg-ink-300 group-hover:text-fg">
+            <Icon name="x" size={14} />
+          </span>
         </button>
       )}
     </span>

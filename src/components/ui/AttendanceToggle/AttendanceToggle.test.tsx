@@ -37,7 +37,9 @@ describe('AttendanceToggle', () => {
         <AttendanceToggle label="foo" value="present" onValueChange={onValueChange} />
       </DirectionProvider>,
     );
-    screen.getByRole('radio', { name: 'נוכח' }).focus();
+    // Tab enters the group on the chosen status
+    await userEvent.tab();
+    expect(screen.getByRole('radio', { name: 'נוכח' })).toHaveFocus();
     await userEvent.keyboard('{ArrowLeft}');
     expect(screen.getByRole('radio', { name: 'נעדר' })).toHaveFocus();
     await userEvent.keyboard('{ArrowLeft}');
@@ -46,7 +48,8 @@ describe('AttendanceToggle', () => {
     expect(onValueChange).not.toHaveBeenCalled();
     await userEvent.keyboard(' ');
     expect(onValueChange).toHaveBeenLastCalledWith('late');
-    await userEvent.keyboard('{ArrowRight}{Enter}');
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Enter}');
     expect(onValueChange).toHaveBeenLastCalledWith('absent');
     expect(onValueChange).toHaveBeenCalledTimes(2);
   });

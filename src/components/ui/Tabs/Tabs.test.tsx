@@ -49,7 +49,8 @@ describe('Tabs', () => {
 
   it('moves with the arrow keys, mirrored in RTL', async () => {
     inRoute('/x');
-    screen.getByRole('tab', { name: 'Foo' }).focus();
+    await userEvent.tab();
+    expect(screen.getByRole('tab', { name: 'Foo' })).toHaveFocus();
     // in RTL the left arrow goes to the next tab
     await userEvent.keyboard('{ArrowLeft}');
     expect(screen.getByRole('tab', { name: 'Bar' })).toHaveFocus();

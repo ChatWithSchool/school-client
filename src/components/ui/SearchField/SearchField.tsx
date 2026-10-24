@@ -29,6 +29,7 @@ export type SearchFieldProps = Omit<
    * the list says "לא נמצאו תוצאות".
    */
   results?: SearchResult[];
+  /** Called with the picked result. Uncontrolled, the field then shows the result's label. */
   onResultSelect?: (result: SearchResult) => void;
 };
 
@@ -71,6 +72,8 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
   const items = results ?? [];
 
   const pick = (r: SearchResult) => {
+    // controlled, the screen sets the text in onResultSelect
+    if (value === undefined) setOwnText(r.label);
     onResultSelect?.(r);
     setOpen(false);
     setActive(-1);
@@ -111,14 +114,15 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
           aria-label={label}
           placeholder={placeholder}
           disabled={disabled}
-          value={value}
-          defaultValue={value === undefined ? defaultValue : undefined}
+          // always controlled here: uncontrolled mode keeps the text in its own state
+          value={text}
           className={cx(fieldInput, 'h-full')}
           {...(hasList && {
             role: 'combobox',
             'aria-autocomplete': 'list' as const,
             'aria-expanded': showList,
-            'aria-controls': listId,
+            // only while the list exists: aria-controls must point at a rendered element
+            'aria-controls': showList && items.length ? listId : undefined,
             'aria-activedescendant': showList && active >= 0 ? `${listId}-${active}` : undefined,
           })}
           onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -165,11 +169,18 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
               ))}
             </ul>
           ) : (
-            <p id={listId} role="status" className="p-3 text-body text-fg-muted">
+            // the live region below announces it
+            <p aria-hidden="true" className="p-3 text-body text-fg-muted">
               לא נמצאו תוצאות
             </p>
           )}
         </div>
+      )}
+      {hasList && (
+        // always mounted, so a screen reader hears the text when it changes
+        <p role="status" className="sr-only">
+          {showList && !items.length ? 'לא נמצאו תוצאות' : ''}
+        </p>
       )}
     </div>
   );

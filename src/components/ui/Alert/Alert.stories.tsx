@@ -24,8 +24,9 @@ export const Variants: Story = {
             <Demo key={tone} label={tone}>
               <Alert
                 tone={tone}
-                dismissible={d === 'on'}
-                onDismiss={() => undefined}
+                {...(d === 'on'
+                  ? { dismissible: true as const, onDismiss: () => undefined }
+                  : { dismissible: false as const })}
                 title="Lorem ipsum"
                 className="w-80"
               >

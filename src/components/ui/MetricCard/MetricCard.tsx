@@ -5,6 +5,8 @@ import { Skeleton } from '../Skeleton/Skeleton';
 
 export type MetricTrend = 'none' | 'up' | 'down';
 export type MetricTone = 'neutral' | 'warning';
+/** Whether the change is good news: the color of the trend. */
+export type MetricTrendTone = 'positive' | 'negative' | 'neutral';
 
 export type MetricCardProps = HTMLAttributes<HTMLDivElement> & {
   label: string;
@@ -13,17 +15,29 @@ export type MetricCardProps = HTMLAttributes<HTMLDivElement> & {
   trend?: MetricTrend;
   /** The words of the trend ("עלייה של 2% מאתמול"). Defaults to a plain word. */
   trendText?: string;
+  /**
+   * The color of the trend. Defaults from the trend: up is positive (green), down is negative
+   * (red). Set it when a rise is bad news, for example `trend="up" trendTone="negative"` for a
+   * rising absence count.
+   */
+  trendTone?: MetricTrendTone;
   /** warning: a metric that needs attention (a warm background). */
   tone?: MetricTone;
   /** Figma `State: loading`: skeletons instead of the value and the trend. */
   loading?: boolean;
 };
 
-const TREND = {
-  none: { text: 'ללא שינוי', color: 'text-fg-muted' },
-  up: { text: 'עלייה', color: 'text-success-700' },
-  down: { text: 'ירידה', color: 'text-danger-700' },
-} as const;
+const TREND: Record<MetricTrend, { text: string; tone: MetricTrendTone }> = {
+  none: { text: 'ללא שינוי', tone: 'neutral' },
+  up: { text: 'עלייה', tone: 'positive' },
+  down: { text: 'ירידה', tone: 'negative' },
+};
+
+const TREND_COLOR: Record<MetricTrendTone, string> = {
+  positive: 'text-success-700',
+  negative: 'text-danger-700',
+  neutral: 'text-fg-muted',
+};
 
 /** A number on a dashboard (screens X03, S08, N06): a label, the value and its trend. */
 export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
@@ -32,6 +46,7 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
     value,
     trend = 'none',
     trendText,
+    trendTone,
     tone = 'neutral',
     loading = false,
     className,
@@ -62,7 +77,9 @@ export const MetricCard = forwardRef<HTMLDivElement, MetricCardProps>(function M
       ) : (
         <>
           <p className={cx('num text-h1', warning ? 'text-warning-700' : 'text-fg')}>{value}</p>
-          <p className={cx('flex items-center gap-1 text-caption', t.color)}>
+          <p
+            className={cx('flex items-center gap-1 text-caption', TREND_COLOR[trendTone ?? t.tone])}
+          >
             {trend !== 'none' && (
               <Icon name={trend === 'up' ? 'arrow-up' : 'arrow-down'} size={14} />
             )}

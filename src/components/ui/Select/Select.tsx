@@ -37,7 +37,11 @@ export type SingleSelectProps = CommonProps & {
   onValueChange?: (value: string) => void;
 };
 
-/** Figma `Multi: on`: several values, chosen with check boxes; the trigger shows them as tags. */
+/**
+ * Figma `Multi: on`: several values, chosen with check boxes; the trigger shows them as tags.
+ * `required` is announced (`aria-required`) but not checked by the browser: the values travel in
+ * hidden inputs, so the screen validates that at least one is chosen.
+ */
 export type MultiSelectProps = CommonProps & {
   multi: true;
   value?: string[];
@@ -143,8 +147,9 @@ const SingleSelect = forwardRef<HTMLButtonElement, SingleSelectProps & { fieldPr
                   key={o.value}
                   value={o.value}
                   disabled={o.disabled}
+                  // the highlight is the focus sign; no focus ring on top of it
                   className={cx(
-                    'flex h-9 cursor-pointer select-none items-center gap-2 px-3 text-body text-fg outline-none',
+                    'flex h-9 cursor-pointer select-none items-center gap-2 px-3 text-body text-fg outline-none focus-visible:ring-0',
                     'data-[highlighted]:bg-subtle data-[disabled]:cursor-not-allowed data-[disabled]:text-ink-400',
                   )}
                 >
@@ -174,6 +179,7 @@ const MultiSelect = forwardRef<
     placeholder = 'בחרו אפשרויות',
     error,
     disabled,
+    required,
     name,
     value,
     defaultValue,
@@ -193,10 +199,13 @@ const MultiSelect = forwardRef<
   const chosen = options.filter((o) => selected.includes(o.value));
   return (
     <Popover.Root defaultOpen={defaultOpen}>
+      {/* a combobox with a dialog popup (Radix sets aria-haspopup, aria-expanded, aria-controls) */}
       <Popover.Trigger
         ref={ref}
+        role="combobox"
         disabled={disabled}
         {...fieldProps}
+        aria-required={required || undefined}
         aria-labelledby={`${labelId} ${fieldProps.id}`}
         className={trigger(error, disabled)}
       >
@@ -210,11 +219,15 @@ const MultiSelect = forwardRef<
         </span>
         <Icon name="chevron-down" size={16} className="text-fg-secondary" />
       </Popover.Trigger>
-      {name && selected.map((v) => <input key={v} type="hidden" name={name} value={v} />)}
+      {/* a disabled field is not sent with the form, as with a native one */}
+      {name &&
+        !disabled &&
+        selected.map((v) => <input key={v} type="hidden" name={name} value={v} />)}
       <Popover.Portal>
         <Popover.Content
           sideOffset={4}
           align="start"
+          aria-labelledby={labelId}
           className={panel}
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >

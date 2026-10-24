@@ -64,8 +64,9 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(functi
                 key={item.label}
                 disabled={item.disabled}
                 onSelect={item.onSelect}
+                // the highlight is the focus sign; no focus ring on top of it
                 className={cx(
-                  'flex h-9 cursor-pointer select-none items-center gap-2 px-3 text-body outline-none',
+                  'flex h-9 cursor-pointer select-none items-center gap-2 px-3 text-body outline-none focus-visible:ring-0',
                   'data-[disabled]:cursor-not-allowed data-[disabled]:text-ink-400',
                   danger
                     ? 'text-danger-700 data-[highlighted]:bg-danger-50'

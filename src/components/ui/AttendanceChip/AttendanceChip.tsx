@@ -22,8 +22,9 @@ export const AttendanceChip = forwardRef<HTMLSpanElement, AttendanceChipProps>(
         className={cx(
           'inline-flex items-center whitespace-nowrap rounded-full',
           s.tone,
-          'gap-1 px-2',
-          size === 'S' ? 'h-5 text-caption' : 'h-6 text-label',
+          // both sizes use the label text (13/18), as in the Figma library; S is only lower
+          'gap-1 px-2 text-label',
+          size === 'S' ? 'h-5' : 'h-6',
           className,
         )}
         {...rest}

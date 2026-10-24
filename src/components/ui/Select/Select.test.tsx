@@ -46,8 +46,9 @@ describe('Select', () => {
 
   it('multi: check boxes in a popover, the chosen values as tags', async () => {
     render(<Multi />);
-    const trigger = screen.getByRole('button', { name: /qux/ });
+    const trigger = screen.getByRole('combobox', { name: /qux/ });
     await userEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'qux' })).toBeInTheDocument();
     const group = screen.getByRole('group', { name: 'qux' });
     expect(group).toBeInTheDocument();
     await userEvent.click(screen.getByRole('checkbox', { name: 'Foo' }));
@@ -57,5 +58,17 @@ describe('Select', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'Foo' }));
     expect(trigger).toHaveTextContent('Bar');
     expect(trigger).not.toHaveTextContent('Foo');
+  });
+
+  it('multi: required is announced; a disabled field sends no hidden inputs', () => {
+    const { container, rerender } = render(
+      <Select multi required label="qux" name="foo" options={OPTIONS} defaultValue={['foo']} />,
+    );
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-required', 'true');
+    expect(container.querySelectorAll('input[type="hidden"][name="foo"]')).toHaveLength(1);
+    rerender(
+      <Select multi disabled label="qux" name="foo" options={OPTIONS} defaultValue={['foo']} />,
+    );
+    expect(container.querySelectorAll('input[type="hidden"][name="foo"]')).toHaveLength(0);
   });
 });

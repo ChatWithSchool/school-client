@@ -32,7 +32,7 @@ const STATUS_ICON: Partial<Record<BadgeTone, IconName>> = {
 };
 
 const SIZE: Record<BadgeSize, { box: string; icon: number }> = {
-  S: { box: 'h-5 gap-1 px-2 text-caption', icon: 12 },
+  S: { box: 'h-5 gap-1 px-2 text-label', icon: 12 },
   M: { box: 'h-6 gap-1 px-3 text-label', icon: 14 },
 };
 

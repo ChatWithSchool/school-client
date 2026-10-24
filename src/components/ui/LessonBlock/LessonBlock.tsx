@@ -12,7 +12,11 @@ export type LessonBlockProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'ch
   meta?: string;
   tone?: LessonTone;
   state?: LessonState;
-  /** The block chosen for editing (screen T02): a selection ring. */
+  /**
+   * The block chosen for editing (screen T02): a primary frame. Pass it (true or false) only on a
+   * grid where blocks are selected: then the block is a toggle button (`aria-pressed`). Leave it
+   * out for a block that only opens the lesson.
+   */
   selected?: boolean;
   /** Replaces the word of the state (for example the substitute teacher's name). */
   note?: string;
@@ -45,7 +49,7 @@ export const LessonBlock = forwardRef<HTMLButtonElement, LessonBlockProps>(funct
     meta,
     tone = 'c1',
     state = 'normal',
-    selected = false,
+    selected,
     note,
     type = 'button',
     className,
@@ -63,10 +67,14 @@ export const LessonBlock = forwardRef<HTMLButtonElement, LessonBlockProps>(funct
       aria-pressed={selected}
       className={cx(
         'flex min-h-16 w-40 flex-col items-start justify-center overflow-hidden rounded-md border-s-4 px-2 py-1 text-start',
-        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/35',
+        // three separate signs, so none hides another: focus is the ring (a shadow), conflict the
+        // outline, selected the frame (the borders beside the subject bar)
+        'focus-visible:ring-4 focus-visible:ring-primary-500/35',
         TONE[tone],
-        conflict && 'outline outline-2 -outline-offset-2 outline-danger-600',
-        selected && 'ring-2 ring-inset ring-primary-500',
+        conflict
+          ? 'outline outline-2 -outline-offset-2 outline-danger-600'
+          : 'focus-visible:outline-none',
+        selected && 'border-y-2 border-e-2 border-y-primary-500 border-e-primary-500',
         cancelled && 'opacity-60',
         className,
       )}

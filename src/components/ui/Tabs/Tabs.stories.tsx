@@ -24,6 +24,16 @@ type Story = StoryObj<typeof Tabs>;
 /** In a route: the active tab is in ?tab= (see the address in the Storybook URL bar of the canvas). */
 export const Playground: Story = {};
 
+/** Two tab sets on one screen: each keeps its own query parameter (?tab= and ?view=). */
+export const TwoSets: Story = {
+  render: () => (
+    <Stack>
+      <Tabs label="Lorem" items={items(3)} />
+      <Tabs label="Ipsum" items={items(2)} param="view" />
+    </Stack>
+  ),
+};
+
 /** Style: underline × Count: 2-6. */
 export const Variants: Story = {
   render: () => (

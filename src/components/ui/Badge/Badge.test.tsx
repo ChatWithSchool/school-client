@@ -8,7 +8,7 @@ describe('Badge', () => {
         foo
       </Badge>,
     );
-    expect(screen.getByText('foo')).toHaveClass('bg-accent-100', 'text-accent-700', 'text-caption');
+    expect(screen.getByText('foo')).toHaveClass('bg-accent-100', 'text-accent-700', 'text-label');
   });
 
   it('gives a status tone an icon, so color is not alone', () => {

@@ -1,4 +1,4 @@
-import { Fragment, forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef, type HTMLAttributes } from 'react';
 import { cx } from '../../../styles/recipes';
 import { Icon } from '../../Icon';
 
@@ -32,11 +32,13 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(function Stepp
         const n = i + 1;
         const state: StepState = n < current ? 'done' : n === current ? 'current' : 'upcoming';
         return (
-          <Fragment key={`${n}-${name}`}>
-            <li
-              aria-current={state === 'current' ? 'step' : undefined}
-              className="flex flex-col items-center gap-1"
-            >
+          // the connector sits in the step before it, so the list has one item per step
+          <li
+            key={`${n}-${name}`}
+            aria-current={state === 'current' ? 'step' : undefined}
+            className="flex items-start gap-2"
+          >
+            <span className="flex flex-col items-center gap-1">
               <span
                 className={cx(
                   'flex h-7 w-7 items-center justify-center rounded-full',
@@ -60,9 +62,9 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(function Stepp
                 {name}
                 <span className="sr-only">{`, ${WORD[state]}`}</span>
               </span>
-            </li>
+            </span>
             {n < steps.length && (
-              <li
+              <span
                 aria-hidden="true"
                 className={cx(
                   'mt-3.5 h-0.5 w-8 shrink-0',
@@ -70,7 +72,7 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(function Stepp
                 )}
               />
             )}
-          </Fragment>
+          </li>
         );
       })}
     </ol>

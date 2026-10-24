@@ -32,6 +32,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export const formatDate = (d: Date) =>
   `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 
+/** yyyy-mm-dd of the local day, the value a form sends (as a native date input does). */
+export const toIsoDate = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
 /** "ינואר 2026": the title of the month grid. */
 export const formatMonth = (d: Date) =>
   new Intl.DateTimeFormat('he', { month: 'long', year: 'numeric' }).format(d);

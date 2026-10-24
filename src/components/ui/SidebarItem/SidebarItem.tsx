@@ -32,7 +32,7 @@ export const SidebarItem = forwardRef<HTMLAnchorElement, SidebarItemProps>(funct
         collapsed ? 'w-10 justify-center' : 'gap-3 px-3',
         active
           ? 'bg-primary-50 text-body-strong text-primary-700'
-          : 'text-body text-fg hover:bg-subtle',
+          : 'text-body text-fg-secondary hover:bg-subtle',
         className,
       )}
       {...rest}

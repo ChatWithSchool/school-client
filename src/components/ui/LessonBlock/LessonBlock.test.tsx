@@ -8,7 +8,8 @@ describe('LessonBlock', () => {
     render(<LessonBlock subject="foo" meta="bar · 4" tone="c3" onClick={onClick} />);
     const block = screen.getByRole('button', { name: 'foo bar · 4' });
     expect(block).toHaveClass('bg-chart-c3/10', 'border-chart-c3');
-    expect(block).toHaveAttribute('aria-pressed', 'false');
+    // not selectable: a plain button, not a toggle
+    expect(block).not.toHaveAttribute('aria-pressed');
     await userEvent.click(block);
     expect(onClick).toHaveBeenCalledTimes(1);
   });
@@ -23,11 +24,20 @@ describe('LessonBlock', () => {
     expect(container.querySelector('svg')).not.toBeNull();
   });
 
-  it('cancelled strikes the subject; selected is pressed with a ring', () => {
+  it('cancelled strikes the subject; selected is pressed with a frame', () => {
     const { rerender } = render(<LessonBlock subject="foo" state="cancelled" />);
     expect(screen.getByText('foo')).toHaveClass('line-through');
+    rerender(<LessonBlock subject="foo" selected={false} />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
     rerender(<LessonBlock subject="foo" selected />);
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button')).toHaveClass('ring-2');
+    expect(screen.getByRole('button')).toHaveClass('border-y-primary-500');
+  });
+
+  it('conflict keeps its outline on focus, and the focus ring does not replace selected', () => {
+    render(<LessonBlock subject="foo" state="conflict" selected />);
+    const block = screen.getByRole('button');
+    expect(block).toHaveClass('outline-danger-600', 'border-e-primary-500');
+    expect(block).not.toHaveClass('focus-visible:outline-none');
   });
 });
