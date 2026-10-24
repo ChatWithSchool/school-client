@@ -23,6 +23,28 @@
 - **שיעורי היום** (list): שעה · כיתה · מקצוע · חדר · פעולות: נוכחות, ציונים
 - **התראות** (note): שינוי חדר או ממלא מקום היום
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [PageHeader](http://localhost:6006/?path=/story/components-pageheader--playground) ◇
+- [DatePicker](http://localhost:6006/?path=/story/components-datepicker--variants-and-states) ◇
+- [Badge](http://localhost:6006/?path=/story/components-badge--playground) ◇
+- [Card](http://localhost:6006/?path=/story/components-card--variants-and-states)
+- [Alert](http://localhost:6006/?path=/story/components-alert--playground)
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+- [LessonBlock](http://localhost:6006/?path=/story/components-lessonblock--playground)
+
+> המסגרת (סרגל עליון, תפריט צד ולשוניות המודול) מגיעה מ-AppShell. לא בונים אותה במסך.
+>
+> מצבי טעינה, ריק ושגיאה: `Table` (טעינה וריק מובנים), `EmptyState`, ו-`LoadingSkeleton` / `ErrorState` מ-`components/StateViews`.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - 'נוכחות' פותח את N01 כשהכיתה והשעה כבר נבחרו.

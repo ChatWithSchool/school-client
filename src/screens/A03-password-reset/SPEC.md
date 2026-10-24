@@ -24,6 +24,23 @@
 - **שלב 3: סיסמה חדשה** (form): סיסמה חדשה * עם מד חוזק · אימות סיסמה *
 - **פעולות** (actions): שלח קישור · שמור סיסמה · חזרה להתחברות
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [TextField](http://localhost:6006/?path=/story/components-textfield--playground) ◇
+- [Stepper](http://localhost:6006/?path=/story/components-stepper--playground) ◇
+- [Toast](http://localhost:6006/?path=/story/components-toast--playground)
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+
+> מצבי טעינה, ריק ושגיאה: `Table` (טעינה וריק מובנים), `EmptyState`, ו-`LoadingSkeleton` / `ErrorState` מ-`components/StateViews`.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - הודעת ההצלחה בשלב 1 זהה גם כשהמייל לא קיים.

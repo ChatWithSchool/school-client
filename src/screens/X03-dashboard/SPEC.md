@@ -24,6 +24,31 @@
 - **דורש טיפול** (list): התראות היעדרות חוזרת · אישורי יציאה ממתינים · הזמנות שלא אושרו
 - **קיצורי דרך** (cards): תלמיד חדש · סימון נוכחות · הפקת תעודות
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [PageHeader](http://localhost:6006/?path=/story/components-pageheader--playground) ◇
+- [Table](http://localhost:6006/?path=/story/components-table--variants-and-states)
+- [Badge](http://localhost:6006/?path=/story/components-badge--playground) ◇
+- [AttendanceChip](http://localhost:6006/?path=/story/components-attendancechip--playground) ◇
+- [MetricCard](http://localhost:6006/?path=/story/components-metriccard--playground) ◇
+- [Card](http://localhost:6006/?path=/story/components-card--variants-and-states)
+- [IconButton](http://localhost:6006/?path=/story/components-iconbutton--playground) ◇
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+
+> המסגרת (סרגל עליון, תפריט צד ולשוניות המודול) מגיעה מ-AppShell. לא בונים אותה במסך.
+>
+> מצבי טעינה, ריק ושגיאה: `Table` (טעינה וריק מובנים), `EmptyState`, ו-`LoadingSkeleton` / `ErrorState` מ-`components/StateViews`.
+>
+> גרף: אין רכיב משותף. בונים לפי מדריך העיצוב, בצבעי `chart-c1`–`chart-c6`, ועם תווית ישירה על הנתונים.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - לחיצה על מדד פותחת את המסך המפורט עם הסינון המתאים.

@@ -24,6 +24,31 @@
 - **רשת שבועית** (grid): עמודות: ימי השבוע · שורות: שעות · תא: מקצוע, מורה, חדר
 - **מקרא** (list): צבע לכל מקצוע · סימון ממלא מקום · סימון שיעור שבוטל
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [PageHeader](http://localhost:6006/?path=/story/components-pageheader--playground) ◇
+- [Select](http://localhost:6006/?path=/story/components-select--playground) ◇
+- [TextField](http://localhost:6006/?path=/story/components-textfield--playground) ◇
+- [Checkbox](http://localhost:6006/?path=/story/components-checkbox--playground) ◇
+- [Badge](http://localhost:6006/?path=/story/components-badge--playground) ◇
+- [LessonBlock](http://localhost:6006/?path=/story/components-lessonblock--playground)
+- [IconButton](http://localhost:6006/?path=/story/components-iconbutton--playground) ◇
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+
+> המסגרת (סרגל עליון, תפריט צד ולשוניות המודול) מגיעה מ-AppShell. לא בונים אותה במסך.
+>
+> מצבי טעינה, ריק ושגיאה: `Table` (טעינה וריק מובנים), `EmptyState`, ו-`LoadingSkeleton` / `ErrorState` מ-`components/StateViews`.
+>
+> רשת מערכת השעות נבנית במסך, וכל שיעור בתוכה הוא LessonBlock.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - מורה נפתח אצלו כברירת מחדל המבט האישי; הורה רואה את כיתת ילדו.

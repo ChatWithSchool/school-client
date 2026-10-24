@@ -24,6 +24,27 @@
 - **סיכום** (note): סה"כ 100%
 - **פעולות** (actions): שמור · העתק משכבה אחרת
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [PageHeader](http://localhost:6006/?path=/story/components-pageheader--playground) ◇
+- [Table](http://localhost:6006/?path=/story/components-table--variants-and-states)
+- [Select](http://localhost:6006/?path=/story/components-select--playground) ◇
+- [Alert](http://localhost:6006/?path=/story/components-alert--playground)
+- [Toast](http://localhost:6006/?path=/story/components-toast--playground)
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+
+> המסגרת (סרגל עליון, תפריט צד ולשוניות המודול) מגיעה מ-AppShell. לא בונים אותה במסך.
+>
+> מצבי טעינה, ריק ושגיאה: `Table` (טעינה וריק מובנים), `EmptyState`, ו-`LoadingSkeleton` / `ErrorState` מ-`components/StateViews`.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - שינוי משקלים מחשב מחדש ציונים של המחצית הפתוחה.

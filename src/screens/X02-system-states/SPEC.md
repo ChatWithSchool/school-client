@@ -16,6 +16,23 @@
 - **שגיאה** (note): הודעה בשפה פשוטה · כפתור 'נסי שוב' · קוד תקלה קטן לתמיכה
 - **מסכי 403 / 404** (cards): 403: אין הרשאה לצפות כאן + חזרה לדף הבית · 404: העמוד לא נמצא + חיפוש
 
+<!-- shared-components:start -->
+
+## רכיבים משותפים
+
+בונים את המסך רק מהרכיבים שב-`src/components/ui`: `import { Button } from '../../components/ui'`.
+◇ = מחובר בפריים ב-Figma: לוחצות עליו ורואות בחלונית הימנית את שורת הקוד. בלי ◇ = רואים ב-Storybook (`npm run storybook`). הקישורים פותחים את ה-story כש-Storybook רץ.
+
+- [Skeleton](http://localhost:6006/?path=/story/components-skeleton--playground)
+- [EmptyState](http://localhost:6006/?path=/story/components-emptystate--playground)
+- [Alert](http://localhost:6006/?path=/story/components-alert--playground)
+- [Button](http://localhost:6006/?path=/story/components-button--playground) ◇
+
+> המסגרת (סרגל עליון, תפריט צד ולשוניות המודול) מגיעה מ-AppShell. לא בונים אותה במסך.
+
+props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפים (בריפו docs: `school-docs/design-kit/components.html`). מה שלא ברשימה: שואלות את ראשת הצוות לפני שבונות.
+<!-- shared-components:end -->
+
 ## פעולות ותגובות
 
 - 'נסי שוב' מריץ מחדש את הקריאה שנכשלה.
