@@ -1,8 +1,9 @@
-import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom';
+import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { useGetMeQuery } from '../api/authApi';
 import { useAppDispatch } from '../app/hooks';
 import { Icon } from '../components/Icon';
 import { LoadingSkeleton } from '../components/StateViews';
+import { SidebarItem, TopBar } from '../components/ui';
 import { logout } from '../features/auth/authSlice';
 import { SCREENS, pathFor } from '../routes/screens';
 import { cx } from '../styles/recipes';
@@ -38,19 +39,13 @@ export function AppShell() {
         </div>
         <nav className="flex flex-col gap-1">
           {sidebar.map((item) => (
-            <NavLink
+            <SidebarItem
               key={item.key}
               to={pathFor(item.entry)}
-              className={cx(
-                'flex h-10 items-center gap-3 rounded-md px-3 text-body',
-                activeKey === item.key
-                  ? 'bg-primary-50 text-body-strong text-primary-700'
-                  : 'text-fg-secondary hover:bg-subtle',
-              )}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </NavLink>
+              icon={item.icon}
+              label={item.label}
+              active={activeKey === item.key}
+            />
           ))}
         </nav>
         <div className="mt-auto rounded-lg bg-subtle p-2">
@@ -75,36 +70,42 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center gap-4 border-b border-line bg-surface px-8">
-          <p className="flex-1 text-body text-fg-secondary">
-            {current ? (
-              <>
+        <TopBar
+          title={
+            current ? (
+              <p className="text-body text-fg-secondary">
                 {current.module} · <span className="text-body-strong text-fg">{current.name}</span>
-              </>
-            ) : null}
-          </p>
-          <Link
-            to={pathFor('S09')}
-            className="flex h-10 w-72 items-center gap-2 rounded-md border border-line bg-page px-3 text-body text-fg-muted"
-          >
-            <Icon name="search" size={16} />
-            חיפוש תלמיד, מורה או כיתה
-          </Link>
-          <Link
-            to={pathFor('N04')}
-            aria-label="התראות"
-            className="flex h-10 w-10 items-center justify-center rounded-md text-fg-secondary hover:bg-subtle"
-          >
-            <Icon name="bell" />
-          </Link>
-          <Link
-            to={pathFor('A05')}
-            aria-label="החשבון שלי"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-label text-primary-700"
-          >
-            {me?.user.firstName?.[0] ?? '?'}
-          </Link>
-        </header>
+              </p>
+            ) : null
+          }
+          search={
+            <Link
+              to={pathFor('S09')}
+              className="flex h-10 w-72 items-center gap-2 rounded-md border border-line bg-page px-3 text-body text-fg-muted focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/35"
+            >
+              <Icon name="search" size={16} />
+              חיפוש תלמיד, מורה או כיתה
+            </Link>
+          }
+          actions={
+            <>
+              <Link
+                to={pathFor('N04')}
+                aria-label="התראות"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-fg-secondary hover:bg-subtle focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/35"
+              >
+                <Icon name="bell" />
+              </Link>
+              <Link
+                to={pathFor('A05')}
+                aria-label="החשבון שלי"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-label text-primary-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/35"
+              >
+                {me?.user.firstName?.[0] ?? '?'}
+              </Link>
+            </>
+          }
+        />
         {sub.length > 0 && (
           <nav className="flex gap-1 border-b border-line bg-surface px-8" aria-label="תפריט משני">
             {sub.map((s) => (
@@ -112,7 +113,7 @@ export function AppShell() {
                 key={s.screen}
                 to={pathFor(s.screen)}
                 className={cx(
-                  'px-3.5 py-3 text-body',
+                  'px-3.5 py-3 text-body focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/35',
                   activeSub === s.screen
                     ? 'border-b-3 border-primary-600 text-body-strong text-primary-700'
                     : 'text-fg-secondary hover:text-fg',

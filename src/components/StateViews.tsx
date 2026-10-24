@@ -1,22 +1,22 @@
 import type { ReactNode } from 'react';
-import { alert, btn, cx } from '../styles/recipes';
 import { Icon } from './Icon';
+import { Alert, Button, EmptyState as UiEmptyState, Skeleton } from './ui';
 
-/** The shared screen states (spec screen X02). Every list and form must use them. */
+/**
+ * The shared screen states (spec screen X02). Every list and form must use them. They are built
+ * from components/ui (Skeleton, EmptyState, Alert, Button) and keep their old props.
+ */
 export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div role="status" aria-label="טוען" className="space-y-3">
       {Array.from({ length: rows }, (_, i) => (
-        <div
-          key={i}
-          className="h-4 animate-pulse rounded-full bg-subtle"
-          style={{ width: `${95 - i * 12}%` }}
-        />
+        <Skeleton key={i} shape="line" style={{ width: `${95 - i * 12}%` }} />
       ))}
     </div>
   );
 }
 
+/** The first-use EmptyState of components/ui. Without `text`, only the title is shown. */
 export function EmptyState({
   title,
   text,
@@ -26,28 +26,21 @@ export function EmptyState({
   text?: string;
   action?: ReactNode;
 }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface px-6 py-12 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-        <Icon name="layers" size={28} />
-      </span>
-      <p className="text-body-strong text-fg">{title}</p>
-      {text && <p className="text-body text-fg-secondary">{text}</p>}
-      {action}
-    </div>
-  );
+  return <UiEmptyState variant="first-use" title={title} text={text ?? ''} action={action} />;
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className={cx(alert.danger, 'flex items-center justify-between gap-4')}>
-      <span>{message}</span>
-      {onRetry && (
-        <button type="button" className={btn.secondary} onClick={onRetry}>
-          נסי שוב
-        </button>
-      )}
-    </div>
+    <Alert tone="danger">
+      <div className="flex items-center justify-between gap-4">
+        <span>{message}</span>
+        {onRetry && (
+          <Button variant="secondary" onClick={onRetry}>
+            נסי שוב
+          </Button>
+        )}
+      </div>
+    </Alert>
   );
 }
 
