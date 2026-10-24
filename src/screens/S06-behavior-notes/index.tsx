@@ -4,3 +4,15 @@ import { ScreenPlaceholder } from '../../components/ScreenPlaceholder';
 export default function Screen() {
   return <ScreenPlaceholder id="S06" name={'הערות התנהגות'} owner="A-02" />;
 }
+
+
+
+
+
+
+
+
+
+
+
+
