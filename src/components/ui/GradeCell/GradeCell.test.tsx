@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
+import { renderWithProviders } from '../../../test/utils';
 import { GradeCell } from './GradeCell';
 
 describe('GradeCell', () => {
@@ -21,11 +22,31 @@ describe('GradeCell', () => {
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
-  it('error: invalid, described by the message', () => {
-    render(<GradeCell label="foo" defaultValue="120" error="bar" />);
+  it('error: invalid, described by the message, with a sign and a tooltip on focus', async () => {
+    // the error tooltip needs the TooltipProvider
+    const { container } = renderWithProviders(
+      <GradeCell label="foo" defaultValue="120" error="bar" />,
+    );
     const input = screen.getByRole('textbox');
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAccessibleDescription('bar');
+    expect(container.querySelector('.text-danger-700 svg')).not.toBeNull();
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    await userEvent.click(input);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('bar');
+    expect(input).toHaveFocus();
+  });
+
+  it('announces saving and then saved in a polite live region', () => {
+    const { rerender } = render(<GradeCell label="foo" defaultValue="87" />);
+    const region = document.querySelector('[aria-live="polite"]');
+    expect(region).toBeEmptyDOMElement();
+    rerender(<GradeCell label="foo" defaultValue="87" state="saving" />);
+    expect(region).toHaveTextContent('שומר');
+    rerender(<GradeCell label="foo" defaultValue="87" state="saved" />);
+    // the same node: the region stays mounted and only its text changes
+    expect(document.querySelector('[aria-live="polite"]')).toBe(region);
+    expect(region).toHaveTextContent('נשמר');
   });
 
   it.each([

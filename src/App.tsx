@@ -1,17 +1,19 @@
 import { DirectionProvider } from '@radix-ui/react-direction';
 import { useMemo } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { ToastProvider } from './components/ui';
+import { ToastProvider, TooltipProvider } from './components/ui';
 import { createAppRouter } from './routes';
 
 export default function App() {
   const router = useMemo(() => createAppRouter(), []);
   // the Radix primitives in components/ui read the direction from here (arrow keys, sides);
-  // ToastProvider gives useToast to every screen
+  // ToastProvider gives useToast to every screen; TooltipProvider is shared by all tooltips
   return (
     <DirectionProvider dir="rtl">
       <ToastProvider>
-        <RouterProvider router={router} />
+        <TooltipProvider>
+          <RouterProvider router={router} />
+        </TooltipProvider>
       </ToastProvider>
     </DirectionProvider>
   );

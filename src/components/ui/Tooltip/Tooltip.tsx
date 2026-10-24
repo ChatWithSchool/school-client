@@ -1,6 +1,11 @@
 import { useDirection } from '@radix-ui/react-direction';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
-import { forwardRef, type ComponentPropsWithoutRef, type ReactElement } from 'react';
+import {
+  forwardRef,
+  type ComponentPropsWithoutRef,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { cx } from '../../../styles/recipes';
 
 export type TooltipPlacement = 'top' | 'bottom' | 'start' | 'end';
@@ -20,6 +25,15 @@ export type TooltipProps = Omit<
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
+
+/**
+ * Shares the open delay between all tooltips: once one is open, moving to the next opens it at
+ * once. Mounted once at the root (App.tsx, the Storybook preview and the test helpers); a Tooltip
+ * needs it above.
+ */
+export function TooltipProvider({ children }: { children: ReactNode }) {
+  return <RadixTooltip.Provider delayDuration={300}>{children}</RadixTooltip.Provider>;
+}
 
 /**
  * A short help text for an icon (Radix). It opens on hover and on keyboard focus and closes with
@@ -52,8 +66,7 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(function Tooltip
           : 'right'
         : placement;
   return (
-    <RadixTooltip.Provider delayDuration={300}>
-      <RadixTooltip.Root defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange}>
+    <RadixTooltip.Root defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange}>
         <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
         <RadixTooltip.Portal>
           <RadixTooltip.Content
@@ -70,7 +83,6 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(function Tooltip
             <RadixTooltip.Arrow className="fill-ink-900" width={10} height={6} />
           </RadixTooltip.Content>
         </RadixTooltip.Portal>
-      </RadixTooltip.Root>
-    </RadixTooltip.Provider>
+    </RadixTooltip.Root>
   );
 });

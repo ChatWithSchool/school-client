@@ -16,7 +16,10 @@ export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-la
   ButtonIcon & {
     variant?: ButtonVariant;
     size?: ButtonSize;
-    /** Shows a spinner and blocks clicks (`disabled` and `aria-busy`) until the action ends. */
+    /**
+     * Shows a spinner and blocks clicks and form submits until the action ends. The button stays
+     * focusable (`aria-disabled` and `aria-busy`, not the native `disabled`), so focus is not lost.
+     */
     loading?: boolean;
     'aria-label'?: string;
   };
@@ -52,6 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     type = 'button',
     className,
     children,
+    onClick,
     ...rest
   },
   ref,
@@ -68,7 +72,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       type={type}
-      disabled={disabled || loading}
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
       className={cx(
         'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md',
@@ -79,6 +84,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         className,
       )}
       {...rest}
+      onClick={(e) => {
+        // preventDefault also stops the submit of a type="submit" button
+        if (loading) e.preventDefault();
+        else onClick?.(e);
+      }}
     >
       {(icon === 'leading' || iconOnly || (loading && icon === 'none')) && glyph}
       {!iconOnly && children}

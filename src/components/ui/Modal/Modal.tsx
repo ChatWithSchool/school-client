@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { forwardRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import { cx } from '../../../styles/recipes';
 import { Button } from '../Button/Button';
 import { IconButton } from '../IconButton/IconButton';
@@ -23,7 +23,13 @@ export type ModalProps = Omit<ComponentPropsWithoutRef<typeof Dialog.Content>, '
   cancelLabel?: string;
   /** danger for a delete confirmation. */
   confirmVariant?: 'primary' | 'danger';
-  onConfirm?: () => void;
+  /**
+   * The confirm action. The dialog closes after it (controlled: through `onOpenChange(false)`).
+   * Return `false` to keep it open (a validation error). Return a Promise to keep it open, with a
+   * spinner on the confirm button, until it settles: it closes when the Promise resolves, and stays
+   * open when it rejects or resolves to `false`.
+   */
+  onConfirm?: () => void | boolean | Promise<void | boolean>;
   /** While the action runs: the confirm button shows a spinner and blocks clicks. */
   confirmLoading?: boolean;
 };
@@ -54,8 +60,34 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(function Modal(
   },
   ref,
 ) {
+  const [innerOpen, setInnerOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const controlled = open !== undefined;
+  const isOpen = controlled ? open : innerOpen;
+
+  const setOpen = (next: boolean) => {
+    if (!controlled) setInnerOpen(next);
+    onOpenChange?.(next);
+  };
+
+  const confirm = async () => {
+    const result = onConfirm?.();
+    if (result instanceof Promise) {
+      setPending(true);
+      try {
+        if ((await result) !== false) setOpen(false);
+      } catch {
+        // the screen shows the error (a toast or an Alert); the dialog stays open
+      } finally {
+        setPending(false);
+      }
+    } else if (result !== false) {
+      setOpen(false);
+    }
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={isOpen} onOpenChange={setOpen}>
       {trigger && <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>}
       <Dialog.Portal>
         {/* the overlay centers the dialog and scrolls when it is taller than the screen */}
@@ -85,7 +117,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(function Modal(
             {children}
             {/* the confirm button comes first: in RTL it is the rightmost of the group */}
             <div className="flex items-center justify-end gap-2">
-              <Button variant={confirmVariant} loading={confirmLoading} onClick={onConfirm}>
+              <Button variant={confirmVariant} loading={confirmLoading || pending} onClick={confirm}>
                 {confirmLabel}
               </Button>
               {footer === 'double' && (

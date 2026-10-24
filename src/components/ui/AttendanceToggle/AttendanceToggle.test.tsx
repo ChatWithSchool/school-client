@@ -30,13 +30,34 @@ describe('AttendanceToggle', () => {
     expect(screen.getByRole('radio', { name: 'נעדר' })).toHaveClass('bg-danger-50');
   });
 
-  it('moves with the arrow keys (mirrored in RTL) and Space chooses', async () => {
-    render(<Live initial="present" />);
+  it('the arrow keys move the focus only (mirrored in RTL); Space and Enter choose', async () => {
+    const onValueChange = vi.fn();
+    render(
+      <DirectionProvider dir="rtl">
+        <AttendanceToggle label="foo" value="present" onValueChange={onValueChange} />
+      </DirectionProvider>,
+    );
     screen.getByRole('radio', { name: 'נוכח' }).focus();
     await userEvent.keyboard('{ArrowLeft}');
     expect(screen.getByRole('radio', { name: 'נעדר' })).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('radio', { name: 'איחור' })).toHaveFocus();
+    // no intermediate value was sent on the way
+    expect(onValueChange).not.toHaveBeenCalled();
     await userEvent.keyboard(' ');
-    expect(screen.getByRole('radio', { name: 'נעדר' })).toHaveAttribute('aria-checked', 'true');
+    expect(onValueChange).toHaveBeenLastCalledWith('late');
+    await userEvent.keyboard('{ArrowRight}{Enter}');
+    expect(onValueChange).toHaveBeenLastCalledWith('absent');
+    expect(onValueChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays usable while saving', async () => {
+    const onValueChange = vi.fn();
+    render(
+      <AttendanceToggle label="foo" value="late" onValueChange={onValueChange} state="saving" />,
+    );
+    await userEvent.click(screen.getByRole('radio', { name: 'נוכח' }));
+    expect(onValueChange).toHaveBeenCalledWith('present');
   });
 
   it('size L is the 48 touch target', () => {
@@ -44,14 +65,16 @@ describe('AttendanceToggle', () => {
     expect(screen.getByRole('radio', { name: 'נוכח' })).toHaveClass('h-12');
   });
 
-  it('saving is busy; error is invalid with a named sign', () => {
+  it('saving is busy; error is invalid with a visible message that describes the group', () => {
     const { rerender } = render(
       <AttendanceToggle label="foo" value="late" onValueChange={() => {}} state="saving" />,
     );
     expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('img', { name: 'שומר' })).toBeInTheDocument();
     rerender(<AttendanceToggle label="foo" value="late" onValueChange={() => {}} state="error" />);
-    expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('img', { name: 'השמירה נכשלה' })).toBeInTheDocument();
+    const group = screen.getByRole('radiogroup');
+    expect(group).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('השמירה נכשלה');
+    expect(group).toHaveAccessibleDescription('השמירה נכשלה');
   });
 });

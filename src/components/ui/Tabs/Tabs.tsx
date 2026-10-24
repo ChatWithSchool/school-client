@@ -8,7 +8,10 @@ export type TabItem = {
   value: string;
   label: string;
   disabled?: boolean;
-  /** The panel of the tab. Rendered only while the tab is active. */
+  /**
+   * The panel of the tab. Rendered only while the tab is active. Without it the screen renders the
+   * content itself, and the tab has no `aria-controls` (there is no panel to point at).
+   */
   content?: ReactNode;
 };
 
@@ -25,17 +28,22 @@ export type TabsProps = Omit<
    * tab). Pass false to keep it in memory only.
    */
   syncUrl?: boolean;
+  /**
+   * The query parameter that holds the active tab. Defaults to `tab`; give each tab set on the
+   * same screen its own name.
+   */
+  param?: string;
   /** Figma `Style`: only underline exists. */
   variant?: 'underline';
 };
 
-/** The query parameter that holds the active tab. */
+/** The default query parameter that holds the active tab. */
 export const TAB_PARAM = 'tab';
 
 const firstEnabled = (items: TabItem[]) => items.find((t) => !t.disabled)?.value;
 
 /** The Radix tabs with the underline look. The arrow keys move between tabs (mirrored in RTL). */
-const TabsView = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function TabsView(
+const TabsView = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl' | 'param'>>(function TabsView(
   { items, label, variant: _variant = 'underline', className, ...rest },
   ref,
 ) {
@@ -47,6 +55,8 @@ const TabsView = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function
             key={t.value}
             value={t.value}
             disabled={t.disabled}
+            // Radix points every tab at its panel; a tab without content has none
+            {...(t.content === undefined && { 'aria-controls': undefined })}
             className={cx(
               '-mb-px flex h-10 items-center border-b-2 border-transparent px-4 text-body-strong',
               focusRing,
@@ -71,13 +81,16 @@ const TabsView = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function
   );
 });
 
-/** The tabs with the active value in `?tab=`. An unknown or disabled value falls back. */
+/**
+ * The tabs with the active value in `?tab=` (or `param`). An unknown or disabled value falls back.
+ * The URL is replaced, not pushed: switching tabs does not fill the browser history.
+ */
 const UrlTabs = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function UrlTabs(
-  { items, defaultValue, onValueChange, ...rest },
+  { items, defaultValue, onValueChange, param = TAB_PARAM, ...rest },
   ref,
 ) {
   const [params, setParams] = useSearchParams();
-  const fromUrl = params.get(TAB_PARAM);
+  const fromUrl = params.get(param);
   const valid = items.some((t) => t.value === fromUrl && !t.disabled);
   const value = valid ? fromUrl! : (defaultValue ?? firstEnabled(items));
   return (
@@ -89,7 +102,7 @@ const UrlTabs = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function 
         setParams(
           (prev) => {
             const next = new URLSearchParams(prev);
-            next.set(TAB_PARAM, v);
+            next.set(param, v);
             return next;
           },
           { replace: true },
@@ -106,11 +119,12 @@ const UrlTabs = forwardRef<HTMLDivElement, Omit<TabsProps, 'syncUrl'>>(function 
  * `syncUrl={false}` keeps it out of the URL.
  */
 export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
-  { syncUrl = true, ...props },
+  { syncUrl = true, param, ...props },
   ref,
 ) {
   const inRouter = useInRouterContext();
-  if (syncUrl && inRouter && props.value === undefined) return <UrlTabs ref={ref} {...props} />;
+  if (syncUrl && inRouter && props.value === undefined)
+    return <UrlTabs ref={ref} param={param} {...props} />;
   return (
     <TabsView
       ref={ref}

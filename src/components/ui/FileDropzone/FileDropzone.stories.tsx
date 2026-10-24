@@ -6,7 +6,7 @@ import { FileDropzone, type FileDropzoneState } from './FileDropzone';
 const meta: Meta<typeof FileDropzone> = {
   title: 'Components/FileDropzone',
   component: FileDropzone,
-  args: { onFiles: () => {}, state: 'idle' },
+  args: { onFiles: () => {}, onReject: () => {}, state: 'idle', accept: '.csv,.xlsx' },
 };
 export default meta;
 type Story = StoryObj<typeof FileDropzone>;

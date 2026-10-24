@@ -1,5 +1,5 @@
 import { DirectionProvider } from '@radix-ui/react-direction';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Tabs, type TabItem } from './Tabs';
@@ -66,5 +66,36 @@ describe('Tabs', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Bar' }));
     expect(screen.getByRole('tabpanel')).toHaveTextContent('bar panel');
     expect(screen.getByTestId('search')).toBeEmptyDOMElement();
+  });
+
+  it('two tab sets on one screen keep their own param', async () => {
+    render(
+      <MemoryRouter initialEntries={['/x?view=bar']}>
+        <Tabs label="qux" items={ITEMS} />
+        <Tabs label="quux" items={ITEMS} param="view" />
+        <Search />
+      </MemoryRouter>,
+    );
+    const [first, second] = screen.getAllByRole('tablist');
+    expect(within(second).getByRole('tab', { name: 'Bar' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await userEvent.click(within(first).getByRole('tab', { name: 'Bar' }));
+    expect(screen.getByTestId('search')).toHaveTextContent('?view=bar&tab=bar');
+  });
+
+  it('a tab without content has no aria-controls', () => {
+    render(
+      <Tabs
+        label="qux"
+        items={[
+          { value: 'foo', label: 'Foo', content: 'foo panel' },
+          { value: 'bar', label: 'Bar' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: 'Foo' })).toHaveAttribute('aria-controls');
+    expect(screen.getByRole('tab', { name: 'Bar' })).not.toHaveAttribute('aria-controls');
   });
 });

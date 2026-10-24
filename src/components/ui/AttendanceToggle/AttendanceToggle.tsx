@@ -1,5 +1,5 @@
 import * as RadixRadio from '@radix-ui/react-radio-group';
-import { forwardRef, type ComponentPropsWithoutRef } from 'react';
+import { forwardRef, useId, type ComponentPropsWithoutRef } from 'react';
 import { cx } from '../../../styles/recipes';
 import { Icon } from '../../Icon';
 import { ATTENDANCE } from '../internal/attendance';
@@ -20,8 +20,14 @@ export type AttendanceToggleProps = Omit<
   onValueChange: (value: Exclude<AttendanceValue, 'none'>) => void;
   /** M = 40 high; L = 48, the touch target for a tablet in class. */
   size?: AttendanceToggleSize;
-  /** saving: the choice is being sent; error: it was not saved (the message is `errorText`). */
+  /**
+   * saving: the choice is being sent; error: it was not saved (the message is `errorText`).
+   * While saving the toggle stays usable, so the teacher can correct a choice at once. The screen
+   * must handle responses that arrive out of order: send only the latest value (cancel or ignore
+   * the earlier request), so an older response never overwrites a newer choice.
+   */
   state?: AttendanceToggleState;
+  /** The visible error text of the error state (announced, and describes the group). */
   errorText?: string;
 };
 
@@ -32,7 +38,9 @@ const SIZE: Record<AttendanceToggleSize, string> = { M: 'h-10 px-3', L: 'h-12 px
 
 /**
  * The quick attendance switch of screen N01: one radio per status, each with color, sign and
- * word. The arrow keys move between them (mirrored in RTL) and choose.
+ * word. The arrow keys only move the focus between them (mirrored in RTL); Space or Enter
+ * chooses. Unlike a plain radio group, moving with the arrows does not save each status on the
+ * way, since every choice is sent to the server at once.
  */
 export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps>(
   function AttendanceToggle(
@@ -45,10 +53,12 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
       errorText = 'השמירה נכשלה',
       disabled,
       className,
+      'aria-describedby': describedBy,
       ...rest
     },
     ref,
   ) {
+    const errorId = useId();
     const saving = state === 'saving';
     const error = state === 'error';
     return (
@@ -58,6 +68,7 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
           aria-label={label}
           aria-busy={saving || undefined}
           aria-invalid={error || undefined}
+          aria-describedby={[describedBy, error && errorId].filter(Boolean).join(' ') || undefined}
           orientation="horizontal"
           loop
           value={value === 'none' ? '' : value}
@@ -77,6 +88,12 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
               <RadixRadio.Item
                 key={key}
                 value={key}
+                // Radix checks the item that the arrow keys focus; this keeps the arrows to focus
+                onFocus={(e) => e.preventDefault()}
+                // Radix ignores Enter on a radio; here it chooses, as Space does
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.click();
+                }}
                 className={cx(
                   'flex items-center gap-1.5 text-body-strong',
                   SIZE[size],
@@ -101,7 +118,14 @@ export const AttendanceToggle = forwardRef<HTMLDivElement, AttendanceToggleProps
           />
         )}
         {error && (
-          <Icon name="circle-alert" size={16} label={errorText} className="text-danger-700" />
+          <p
+            id={errorId}
+            role="alert"
+            className="flex items-center gap-1 text-caption text-danger-700"
+          >
+            <Icon name="circle-alert" size={16} />
+            {errorText}
+          </p>
         )}
       </div>
     );

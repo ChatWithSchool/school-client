@@ -43,4 +43,50 @@ describe('FileDropzone', () => {
     expect(screen.getByRole('status')).toHaveTextContent('foo.csv הועלה');
     expect(screen.getByRole('button', { name: 'החלפת קובץ' })).toBeInTheDocument();
   });
+
+  it('checks dropped and chosen files against accept and rejects the others', async () => {
+    const onFiles = vi.fn();
+    const onReject = vi.fn();
+    const pdf = new File(['bar'], 'bar.pdf', { type: 'application/pdf' });
+    const txt = new File(['baz'], 'baz.txt', { type: 'text/plain' });
+    const { container, rerender } = render(
+      <FileDropzone onFiles={onFiles} onReject={onReject} accept=".csv" multiple />,
+    );
+    fireEvent.drop(screen.getByRole('group'), { dataTransfer: { files: [file, pdf] } });
+    expect(onFiles).toHaveBeenLastCalledWith([file]);
+    expect(onReject).toHaveBeenLastCalledWith([pdf]);
+
+    rerender(<FileDropzone onFiles={onFiles} onReject={onReject} accept="text/*" multiple />);
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    // applyAccept: false lets the test give a file the input's accept would hide
+    await userEvent.upload(input, [txt, pdf], { applyAccept: false });
+    expect(onFiles).toHaveBeenLastCalledWith([txt]);
+    expect(onReject).toHaveBeenLastCalledWith([pdf]);
+  });
+
+  it('ignores drops while uploading or done, and takes them in the error state', () => {
+    const onFiles = vi.fn();
+    const { rerender } = render(<FileDropzone onFiles={onFiles} state="uploading" />);
+    fireEvent.drop(screen.getByRole('group'), { dataTransfer: { files: [file] } });
+    rerender(<FileDropzone onFiles={onFiles} state="done" />);
+    fireEvent.drop(screen.getByRole('group'), { dataTransfer: { files: [file] } });
+    expect(onFiles).not.toHaveBeenCalled();
+    rerender(<FileDropzone onFiles={onFiles} state="error" />);
+    fireEvent.drop(screen.getByRole('group'), { dataTransfer: { files: [file] } });
+    expect(onFiles).toHaveBeenCalledWith([file]);
+  });
+
+  it('dragging over a child of the zone keeps the highlight', () => {
+    render(<FileDropzone onFiles={() => {}} />);
+    const zone = screen.getByRole('group');
+    const child = screen.getByRole('button', { name: 'בחרו קובץ' });
+    // jsdom has no DragEvent; a MouseEvent carries the relatedTarget
+    const leave = (relatedTarget: Element | null) =>
+      fireEvent(zone, new MouseEvent('dragleave', { bubbles: true, relatedTarget }));
+    fireEvent.dragOver(zone);
+    leave(child);
+    expect(zone).toHaveClass('bg-primary-50');
+    leave(null);
+    expect(zone).not.toHaveClass('bg-primary-50');
+  });
 });

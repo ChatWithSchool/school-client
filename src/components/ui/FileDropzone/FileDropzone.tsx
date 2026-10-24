@@ -10,10 +10,15 @@ export type FileDropzoneState = 'idle' | 'drag-over' | 'uploading' | 'error' | '
 
 export type FileDropzoneProps = Omit<HTMLAttributes<HTMLDivElement>, 'onDrop'> & {
   state?: FileDropzoneState;
-  /** Called with the chosen or dropped files. */
+  /** Called with the chosen or dropped files that match `accept`. */
   onFiles: (files: File[]) => void;
-  /** The input's accept: ".csv,.xlsx". */
+  /**
+   * The formats, as in the input's accept: extensions and MIME types (".csv,.xlsx", "text/*").
+   * Dropped files are checked too, since a drop ignores the input's accept.
+   */
   accept?: string;
+  /** Called with the files that do not match `accept` (the screen says why, for example a toast). */
+  onReject?: (files: File[]) => void;
   multiple?: boolean;
   /** The line under the call to action: the formats and the size limit. */
   hint?: string;
@@ -25,6 +30,24 @@ export type FileDropzoneProps = Omit<HTMLAttributes<HTMLDivElement>, 'onDrop'> &
   error?: string;
   disabled?: boolean;
 };
+
+/** True when the file matches one of the accept entries: an extension, a MIME type or type/*. */
+function matchesAccept(file: File, accept?: string) {
+  const entries = (accept ?? '')
+    .split(',')
+    .map((a) => a.trim().toLowerCase())
+    .filter(Boolean);
+  if (!entries.length) return true;
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  return entries.some((a) =>
+    a.startsWith('.')
+      ? name.endsWith(a)
+      : a.endsWith('/*')
+        ? type.startsWith(a.slice(0, -1))
+        : type === a,
+  );
+}
 
 const CIRCLE: Record<'upload' | 'error' | 'done', { icon: IconName; tone: string }> = {
   upload: { icon: 'upload', tone: 'bg-primary-50 text-primary-600' },
@@ -41,6 +64,7 @@ export const FileDropzone = forwardRef<HTMLDivElement, FileDropzoneProps>(functi
     state = 'idle',
     onFiles,
     accept,
+    onReject,
     multiple,
     hint = 'CSV או Excel, עד 5MB',
     fileName,
@@ -58,14 +82,22 @@ export const FileDropzone = forwardRef<HTMLDivElement, FileDropzoneProps>(functi
   const accepting = state === 'idle' || state === 'drag-over';
   const over = accepting && (dragging || state === 'drag-over');
   const circle = CIRCLE[state === 'error' ? 'error' : state === 'done' ? 'done' : 'upload'];
+  // a drop is taken while the zone waits for a file; not while uploading or when done
+  const droppable = accepting || state === 'error';
   const choose = () => input.current?.click();
+
+  const take = (files: File[]) => {
+    const ok = files.filter((f) => matchesAccept(f, accept));
+    const rejected = files.filter((f) => !ok.includes(f));
+    if (ok.length) onFiles(multiple ? ok : ok.slice(0, 1));
+    if (rejected.length) onReject?.(rejected);
+  };
 
   const drop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragging(false);
-    if (disabled) return;
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length) onFiles(multiple ? files : files.slice(0, 1));
+    if (disabled || !droppable) return;
+    take(Array.from(e.dataTransfer.files));
   };
 
   return (
@@ -76,9 +108,12 @@ export const FileDropzone = forwardRef<HTMLDivElement, FileDropzoneProps>(functi
       aria-busy={state === 'uploading' || undefined}
       onDragOver={(e) => {
         e.preventDefault();
-        if (!disabled) setDragging(true);
+        if (!disabled && droppable) setDragging(true);
       }}
-      onDragLeave={() => setDragging(false)}
+      onDragLeave={(e) => {
+        // moving onto a child of the zone also fires dragleave; only leaving the zone counts
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
       onDrop={drop}
       className={cx(
         'flex w-full flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-8 text-center',
@@ -155,8 +190,7 @@ export const FileDropzone = forwardRef<HTMLDivElement, FileDropzoneProps>(functi
         accept={accept}
         multiple={multiple}
         onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length) onFiles(files);
+          take(Array.from(e.target.files ?? []));
           e.target.value = '';
         }}
       />

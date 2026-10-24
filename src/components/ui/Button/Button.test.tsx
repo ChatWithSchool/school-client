@@ -28,7 +28,7 @@ describe('Button', () => {
     expect(ref.current).toBeInstanceOf(HTMLButtonElement);
   });
 
-  it('while loading: disabled, aria-busy, and no click', async () => {
+  it('while loading: aria-disabled, aria-busy, keeps focus, and no click', async () => {
     const onClick = vi.fn();
     render(
       <Button loading onClick={onClick}>
@@ -36,10 +36,25 @@ describe('Button', () => {
       </Button>,
     );
     const btn = screen.getByRole('button', { name: 'foo' });
-    expect(btn).toBeDisabled();
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveAttribute('aria-disabled', 'true');
     expect(btn).toHaveAttribute('aria-busy', 'true');
     await userEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
+    expect(btn).toHaveFocus();
+  });
+
+  it('a loading submit button does not submit its form', async () => {
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" loading>
+          foo
+        </Button>
+      </form>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'foo' }));
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('disabled shows the disabled look', () => {
