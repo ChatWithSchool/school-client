@@ -23,6 +23,7 @@ npm run dev                      # http://localhost:5173
 | `npm run verify`                  | typecheck, lint ובדיקות. להריץ לפני כל PR |
 | `npm test` / `npm run test:watch` | בדיקות (Vitest ו-Testing Library)         |
 | `npm run build`                   | בניית ייצור ל-`dist`                      |
+| `npm run storybook`               | קטלוג הרכיבים (http://localhost:6006)     |
 | `npm run format`                  | עיצוב הקוד עם Prettier                    |
 
 ## איך הקליינט בנוי
@@ -34,7 +35,8 @@ src/
   api/                       apiSlice (בסיס משותף) ו-API של כל מסך בקובץ משלו
   features/auth/             התחברות, הגנת נתיבים והרשאות (usePermission)
   layout/                    מסגרת האפליקציה (X01): תפריט צד, סרגל עליון, תפריט משני
-  components/                רכיבים משותפים: מצבי מסך (X02), אייקונים
+  components/ui/             ספריית הרכיבים: Button, TextField, Table, Modal ועוד, עם בדיקות ו-stories
+  components/                מצבי מסך (X02) ואייקונים
   styles/                    theme.css (טוקנים) ו-recipes.ts (מחרוזות Tailwind מוכנות)
   routes/screens.ts          רישום כל המסכים (נוצר מהאפיון)
   screens/<מזהה>-<שם>/       תיקייה לכל מסך: index.tsx ו-SPEC.md
@@ -45,7 +47,8 @@ src/
 
 ## עיצוב
 
-- אין ספריית רכיבים. בונות מ-Tailwind עם הטוקנים של הפרויקט (`tailwind.config.cjs`) ועם המתכונים ב-`src/styles/recipes.ts`.
+- בונות מסכים מהרכיבים ב-`src/components/ui`. הם בנויים על Radix (דיאלוגים, תפריטים, לשוניות ובחירה), עם הטוקנים של הפרויקט (`tailwind.config.cjs`), RTL ונגישות מובנים. את כולם, עם כל הווריאנטים והמצבים, רואים ב-Storybook (`npm run storybook`).
+- המתכונים ב-`src/styles/recipes.ts` רק למקום שאין בו רכיב. חסר רכיב? PR נפרד ל-`components/ui`.
 - צבעים, גופנים ומרווחים רק מהטוקנים. בלי ערכים שרירותיים כמו `bg-[#123456]`.
 - RTL: מחלקות לוגיות (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`, `text-start`) ולא `ml`, `mr`, `left`, `right`.
 - נגישות: תווית לכל שדה, מיקוד גלוי, סטטוס לא בצבע בלבד, ניווט מקלדת.
