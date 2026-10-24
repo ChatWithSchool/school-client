@@ -30,9 +30,9 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>(function Progr
       className={cx('flex h-2 w-full overflow-hidden rounded-full bg-subtle', className)}
       {...rest}
     >
-      {/* the width is the value itself, so it is an inline style and not a class */}
       <div
         className={cx('h-full rounded-full transition-all', TONE[tone])}
+        // eslint-disable-next-line local/no-inline-style -- the width is the value itself, set at run time
         style={{ width: `${pct}%` }}
       />
     </div>

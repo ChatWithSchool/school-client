@@ -138,7 +138,7 @@ const SingleSelect = forwardRef<HTMLButtonElement, SingleSelectProps & { fieldPr
             position="popper"
             sideOffset={4}
             className={panel}
-            // the list is as wide as the field (a size measured at run time, not a token)
+            // eslint-disable-next-line local/no-inline-style -- as wide as the field, measured at run time by Radix
             style={{ width: 'var(--radix-select-trigger-width)' }}
           >
             <RadixSelect.Viewport>
@@ -229,6 +229,7 @@ const MultiSelect = forwardRef<
           align="start"
           aria-labelledby={labelId}
           className={panel}
+          // eslint-disable-next-line local/no-inline-style -- as wide as the field, measured at run time by Radix
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
           <div role="group" aria-label={label}>

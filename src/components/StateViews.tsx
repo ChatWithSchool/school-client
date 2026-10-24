@@ -10,7 +10,12 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div role="status" aria-label="טוען" className="space-y-3">
       {Array.from({ length: rows }, (_, i) => (
-        <Skeleton key={i} shape="line" style={{ width: `${95 - i * 12}%` }} />
+        <Skeleton
+          key={i}
+          shape="line"
+          // eslint-disable-next-line local/no-inline-style -- each row is shorter, computed per row
+          style={{ width: `${95 - i * 12}%` }}
+        />
       ))}
     </div>
   );

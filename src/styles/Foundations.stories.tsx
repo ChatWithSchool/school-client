@@ -30,7 +30,11 @@ export const Colors: Story = {
           <div className="flex flex-wrap gap-2">
             {steps.map((step) => (
               <div key={step} className="w-24 overflow-hidden rounded-md border border-line">
-                <div className="h-12" style={{ background: `var(--${scale}-${step})` }} />
+                <div
+                  className="h-12"
+                  // eslint-disable-next-line local/no-inline-style -- one swatch per token, built in a loop
+                  style={{ background: `var(--${scale}-${step})` }}
+                />
                 <p className="num bg-surface px-2 py-1 text-caption">
                   {scale}.{step}
                 </p>
@@ -81,6 +85,7 @@ export const SpacingRadiusShadow: Story = {
             <span className="num w-20">space-{n}</span>
             <span
               className="h-3 rounded-sm bg-primary-400"
+              // eslint-disable-next-line local/no-inline-style -- one bar per spacing token, built in a loop
               style={{ width: `var(--space-${n})` }}
             />
           </div>
