@@ -12,3 +12,14 @@ afterEach(() => {
   localStorage.clear();
 });
 afterAll(() => server.close());
+
+// jsdom lacks a few browser APIs that the Radix primitives in components/ui call
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+Element.prototype.scrollIntoView ??= () => undefined;
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.releasePointerCapture ??= () => undefined;

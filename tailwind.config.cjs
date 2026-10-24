@@ -199,9 +199,11 @@ module.exports = {
         10: '40px',
         12: '48px',
         16: '64px',
+        4.5: '18px',
       },
       ringColor: { DEFAULT: '#3A62FA' },
-      // Component sizes that have no spacing step: the tab underline, the drawer and the dialogs.
+      // Component sizes that have no spacing step: the check box and radio (18), the tab underline,
+      // the drawer and the dialogs.
       borderWidth: { 3: '3px' },
       width: { drawer: '420px' },
       maxWidth: { 'modal-s': '480px', 'modal-m': '640px' },
