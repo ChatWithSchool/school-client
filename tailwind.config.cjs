@@ -203,9 +203,9 @@ module.exports = {
       },
       ringColor: { DEFAULT: '#3A62FA' },
       // Component sizes that have no spacing step: the check box and radio (18), the tab underline,
-      // the drawer, the dialogs and the toast.
+      // the drawer, the dialogs, the toast and the grade cell.
       borderWidth: { 3: '3px' },
-      width: { drawer: '420px', toast: '360px' },
+      width: { drawer: '420px', toast: '360px', 'grade-cell': '72px' },
       maxWidth: { 'modal-s': '480px', 'modal-m': '640px' },
       // The toast enters and leaves (the States enter, visible, exit of the Figma component).
       keyframes: {

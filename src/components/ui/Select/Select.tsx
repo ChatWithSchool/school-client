@@ -3,11 +3,11 @@ import * as RadixSelect from '@radix-ui/react-select';
 import { forwardRef, useId, useState } from 'react';
 import { cx } from '../../../styles/recipes';
 import { Icon } from '../../Icon';
-import { Badge } from '../Badge/Badge';
 import { Checkbox } from '../Checkbox/Checkbox';
 import { FieldLabel, FieldMessage } from '../internal/FieldParts';
 import { fieldBox, focusRing } from '../internal/styles';
 import { useField } from '../internal/useField';
+import { Tag } from '../Tag/Tag';
 
 export type SelectOption = { value: string; label: string; disabled?: boolean };
 
@@ -202,11 +202,8 @@ const MultiSelect = forwardRef<
       >
         <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
           {chosen.length ? (
-            chosen.map((o) => (
-              <Badge key={o.value} size="S">
-                {o.label}
-              </Badge>
-            ))
+            // tags without an x: a button inside the trigger button would not be reachable
+            chosen.map((o) => <Tag key={o.value} label={o.label} />)
           ) : (
             <span className="truncate text-fg-muted">{placeholder}</span>
           )}
