@@ -114,7 +114,7 @@ export function AppShell() {
                 className={cx(
                   'px-3.5 py-3 text-body',
                   activeSub === s.screen
-                    ? 'border-b-[3px] border-primary-600 text-body-strong text-primary-700'
+                    ? 'border-b-3 border-primary-600 text-body-strong text-primary-700'
                     : 'text-fg-secondary hover:text-fg',
                 )}
               >

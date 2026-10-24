@@ -1,7 +1,9 @@
 /**
- * Class recipes: the project does not use a component library, so every screen builds its UI from
- * these Tailwind strings. They come from the design guide. Add a new recipe here (in a PR) instead of
- * inventing a style in a screen.
+ * Class recipes: Tailwind strings from the design guide.
+ *
+ * Prefer the components in `components/ui` (Button, TextField, Badge, Alert, Card, Table and the rest):
+ * they already carry these styles, the states and the accessibility. Use a recipe only where no
+ * component fits, and add a new recipe here (in a PR) instead of inventing a style in a screen.
  */
 export const cx = (...parts: (string | false | null | undefined)[]): string =>
   parts.filter(Boolean).join(' ');
@@ -55,6 +57,8 @@ export const badge = {
   danger:
     'inline-flex items-center rounded-full bg-danger-50 px-2.5 py-0.5 text-label text-danger-700',
   info: 'inline-flex items-center rounded-full bg-info-50 px-2.5 py-0.5 text-label text-info-700',
+  accent:
+    'inline-flex items-center rounded-full bg-accent-100 px-2.5 py-0.5 text-label text-accent-700',
 };
 
 export const alert = {

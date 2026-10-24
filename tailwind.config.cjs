@@ -5,11 +5,11 @@ module.exports = {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     screens: {
-      sm: 640,
-      md: 768,
-      lg: 1024,
-      xl: 1280,
-      '2xl': 1536,
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
     },
     colors: {
       transparent: 'transparent',
@@ -201,6 +201,10 @@ module.exports = {
         16: '64px',
       },
       ringColor: { DEFAULT: '#3A62FA' },
+      // Component sizes that have no spacing step: the tab underline, the drawer and the dialogs.
+      borderWidth: { 3: '3px' },
+      width: { drawer: '420px' },
+      maxWidth: { 'modal-s': '480px', 'modal-m': '640px' },
     },
   },
   plugins: [],
