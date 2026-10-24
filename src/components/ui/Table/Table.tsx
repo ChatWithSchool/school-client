@@ -1,6 +1,7 @@
 import {
   forwardRef,
   type ForwardedRef,
+  type MouseEvent,
   type ReactElement,
   type ReactNode,
   type RefAttributes,
@@ -42,12 +43,27 @@ export type TableProps<T> = Omit<TableHTMLAttributes<HTMLTableElement>, 'childre
   loading?: boolean;
   /** Figma `State: empty`: what an empty table shows. Defaults to the no-results EmptyState. */
   empty?: ReactNode;
+  /**
+   * Makes each row clickable: a click, or Enter or Space while the row has focus. Clicks on a
+   * button, link, field or menu inside a cell do not open the row. The row has no name of its own,
+   * so when the row opens a page, prefer a Link in the primary cell (screen readers announce it)
+   * and keep `onRowClick` as the larger mouse target.
+   */
   onRowClick?: (row: T) => void;
   /** Classes of the scroll box around the table (a max height makes the sticky header work). */
   wrapperClassName?: string;
 };
 
 const LOADING_ROWS = 3;
+
+/** Clicks on these, inside a cell, belong to the control and do not open the row. */
+const INTERACTIVE = 'button,a,input,select,textarea,[role=menuitem],[role=option],[role=checkbox]';
+
+/** False for a click that comes from a control in a cell, or through a portal (a Radix menu). */
+function isRowClick(e: MouseEvent<HTMLTableRowElement>) {
+  const target = e.target as Element;
+  return e.currentTarget.contains(target) && !target.closest(INTERACTIVE);
+}
 
 function TableInner<T>(
   {
@@ -73,9 +89,17 @@ function TableInner<T>(
   const list = rows ?? [];
   const span = columns.length + (selectable ? 1 : 0);
   const selected = new Set(selectedIds);
-  const allIds = list.map(getRowId);
-  const picked = allIds.filter((id) => selected.has(id)).length;
-  const all = picked > 0 && picked === allIds.length ? true : picked > 0 ? 'mixed' : false;
+  // the rows of this page; ids chosen on other pages stay in selectedIds
+  const pageIds = list.map(getRowId);
+  const picked = pageIds.filter((id) => selected.has(id)).length;
+  const all = picked > 0 && picked === pageIds.length ? true : picked > 0 ? 'mixed' : false;
+
+  const toggleAll = (on: boolean) =>
+    onSelectedChange?.(
+      on
+        ? [...new Set([...selectedIds, ...pageIds])]
+        : selectedIds.filter((id) => !pageIds.includes(id)),
+    );
 
   const toggle = (id: string, on: boolean) =>
     onSelectedChange?.(on ? [...selectedIds, id] : selectedIds.filter((x) => x !== id));
@@ -98,7 +122,7 @@ function TableInner<T>(
                   aria-label="בחירת כל השורות"
                   checked={all}
                   disabled={busy || list.length === 0}
-                  onCheckedChange={(v) => onSelectedChange?.(v === true ? allIds : [])}
+                  onCheckedChange={(v) => toggleAll(v === true)}
                 />
               </th>
             )}
@@ -140,11 +164,22 @@ function TableInner<T>(
                   density={density}
                   selected={on}
                   tabIndex={onRowClick ? 0 : undefined}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          if (isRowClick(e)) onRowClick(row);
+                        }
+                      : undefined
+                  }
                   onKeyDown={
                     onRowClick
                       ? (e) => {
-                          if (e.target === e.currentTarget && e.key === 'Enter') onRowClick(row);
+                          // only the focused row itself; keys in a cell control stay with it
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault(); // Space would scroll the page
+                            onRowClick(row);
+                          }
                         }
                       : undefined
                   }

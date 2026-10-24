@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
+import { DropdownMenu } from '../DropdownMenu/DropdownMenu';
 import { Table, type TableColumn } from './Table';
 
 type Row = { id: string; name: string; count: number };
@@ -13,18 +14,19 @@ const COLUMNS: TableColumn<Row>[] = [
   { key: 'count', header: 'Ipsum', cell: (r) => r.count, numeric: true },
 ];
 
-function Selectable() {
-  const [ids, setIds] = useState<string[]>([]);
+function Selectable({ rows = ROWS, initial = [] }: { rows?: Row[]; initial?: string[] }) {
+  const [ids, setIds] = useState<string[]>(initial);
   return (
     <Table
       caption="baz"
       columns={COLUMNS}
-      rows={ROWS}
+      rows={rows}
       getRowId={(r) => r.id}
       selectable
       selectedIds={ids}
       onSelectedChange={setIds}
       rowLabel={(r) => `בחירת ${r.name}`}
+      data-selected-ids={ids.join(',')}
     />
   );
 }
@@ -104,5 +106,62 @@ describe('Table', () => {
     row.focus();
     await userEvent.keyboard('{Enter}');
     expect(onRowClick).toHaveBeenCalledTimes(2);
+  });
+
+  it('select all and clear all keep the rows chosen on other pages', async () => {
+    // '9' was chosen on another page; '1' is on this page
+    render(<Selectable initial={['9', '1']} />);
+    const table = screen.getByRole('table');
+    const all = screen.getByRole('checkbox', { name: 'בחירת כל השורות' });
+    // the header state counts the rows of this page only
+    expect(all).toHaveAttribute('aria-checked', 'mixed');
+    await userEvent.click(all);
+    expect(table).toHaveAttribute('data-selected-ids', '9,1,2');
+    expect(all).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(all);
+    expect(table).toHaveAttribute('data-selected-ids', '9');
+    expect(all).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('a clickable row also opens with Space', async () => {
+    const onRowClick = vi.fn();
+    render(
+      <Table
+        caption="baz"
+        columns={COLUMNS}
+        rows={ROWS}
+        getRowId={(r) => r.id}
+        onRowClick={onRowClick}
+      />,
+    );
+    screen.getAllByRole('row')[1].focus();
+    await userEvent.keyboard(' ');
+    expect(onRowClick).toHaveBeenCalledWith(ROWS[0]);
+  });
+
+  it('a click on a control in a cell, or in its menu, does not open the row', async () => {
+    const onRowClick = vi.fn();
+    const onSelect = vi.fn();
+    const columns: TableColumn<Row>[] = [
+      ...COLUMNS,
+      {
+        key: 'actions',
+        header: 'Dolor',
+        cell: (r) => <DropdownMenu label={`qux ${r.name}`} items={[{ label: 'quux', onSelect }]} />,
+      },
+    ];
+    render(
+      <Table
+        caption="baz"
+        columns={columns}
+        rows={ROWS}
+        getRowId={(r) => r.id}
+        onRowClick={onRowClick}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'qux foo' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'quux' }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onRowClick).not.toHaveBeenCalled();
   });
 });
