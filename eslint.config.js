@@ -53,6 +53,8 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
+  // Node scripts that run from npm (for example contract:sync)
+  { files: ['scripts/**/*.mjs'], languageOptions: { globals: { ...globals.node } } },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: { globals: { ...globals.browser } },
