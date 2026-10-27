@@ -1,4 +1,5 @@
 import type { Announcement } from '../api/types';
+import { resetShared } from './shared';
 
 export const DEMO_PASSWORD = 'Demo1234!';
 
@@ -37,8 +38,10 @@ const seed = (): Announcement[] => [
 ];
 
 export let announcements: Announcement[] = seed();
+/** Puts all the mock data back to the seed (the test setup calls it after every test). */
 export const resetData = (): void => {
   announcements = seed();
+  resetShared();
 };
 export const addAnnouncement = (a: Announcement): void => {
   announcements = [a, ...announcements];
