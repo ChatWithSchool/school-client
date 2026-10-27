@@ -154,6 +154,7 @@ export const STAFF_ID = {
   secretary: STAFF[1].id, // אור ברק
   mathH1: STAFF[2].id, // עמית כהן, מחנך/ת ח1
   hebZ1: STAFF[5].id, // נועם גולדשטיין, מחנך/ת ז1
+  mathZ2: STAFF[6].id, // טל חדד, מחנך/ת ז2
   eng: STAFF[8].id, // מור דהן
   his: STAFF[10].id, // דור קליין
 };

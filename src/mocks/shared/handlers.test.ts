@@ -1,5 +1,6 @@
 import type {
   Assessment,
+  AttendanceAlert,
   AttendanceRecord,
   Grade,
   Invite,
@@ -71,15 +72,24 @@ describe('shared collection mocks', () => {
     );
   });
 
-  it('returns grades with null for a score not entered, matching gradedCount', async () => {
+  it('returns grades with null for a score not entered, and the right gradedCount', async () => {
+    // [students in the class, scores entered]: ח1 has 12 students, ז1 has 8
+    const expected: Record<string, [number, number]> = {
+      'asm-1': [12, 11],
+      'asm-2': [12, 10],
+      'asm-3': [8, 5],
+      'asm-4': [8, 0],
+    };
     const { body: assessments } = await get<Page<Assessment>>('/assessments');
-    for (const a of assessments.items) {
-      const { body } = await get<List<Grade>>(`/assessments/${a.id}/grades`);
-      expect(body.items.every((g) => g.assessmentId === a.id)).toBe(true);
-      expect(body.items.filter((g) => g.score !== null)).toHaveLength(a.gradedCount!);
+    expect(assessments.items.map((a) => [a.id, a.gradedCount])).toEqual(
+      Object.entries(expected).map(([id, [, entered]]) => [id, entered]),
+    );
+    for (const [id, [students, entered]] of Object.entries(expected)) {
+      const { body } = await get<List<Grade>>(`/assessments/${id}/grades`);
+      expect(body.items).toHaveLength(students);
+      expect(body.items.every((g) => g.assessmentId === id)).toBe(true);
+      expect(body.items.filter((g) => g.score !== null)).toHaveLength(entered);
     }
-    const future = await get<List<Grade>>('/assessments/asm-4/grades');
-    expect(future.body.items.every((g) => g.score === null)).toBe(true);
     expect((await get('/assessments/nope/grades')).status).toBe(404);
   });
 
@@ -91,6 +101,42 @@ describe('shared collection mocks', () => {
     expect(body.items.find((r) => r.studentId === 'stu-4')?.status).toBe('absent');
     expect(body.items.every((r) => r.period === null)).toBe(true);
     expect((await get('/attendance?slot=morning')).status).toBe(400);
+  });
+
+  // the server rules, checked here on their own (not with the code that wrote the mock alerts)
+  it('backs every open alert with the attendance records', async () => {
+    const { body: alerts } = await get<Page<AttendanceAlert>>('/attendance/alerts');
+    const { body: records } = await get<List<AttendanceRecord>>('/attendance');
+    const latest = records.items
+      .map((r) => r.date)
+      .sort()
+      .at(-1)!;
+    const open = alerts.items.filter((a) => a.status === 'open');
+    expect(open).toHaveLength(3);
+    for (const a of open) {
+      expect(a.closedBy).toBeNull();
+      expect(a.closedAt).toBeNull();
+      const days = records.items
+        .filter((r) => r.studentId === a.studentId && r.period === null)
+        .sort((x, y) => x.date.localeCompare(y.date));
+      expect(days.every((r) => r.classId === a.classId)).toBe(true);
+      if (a.type === 'streak') {
+        // absent on the last `count` days, and not on the day before them
+        const run = days.slice(-a.count!);
+        expect(days.at(-1)?.date).toBe(latest);
+        expect(a.count).toBeGreaterThanOrEqual(3);
+        expect(run.every((r) => r.status === 'absent')).toBe(true);
+        expect(days.at(-a.count! - 1)?.status).not.toBe('absent');
+        expect(run[0].date).toBe(a.since);
+        expect(a.month).toBeNull();
+      } else {
+        expect(a.month).toBe(latest.slice(0, 7));
+        const absences = days.filter((r) => r.status === 'absent' && r.date.startsWith(a.month!));
+        expect(a.count).toBeGreaterThanOrEqual(3);
+        expect(absences).toHaveLength(a.count!);
+        expect(absences[0].date).toBe(a.since);
+      }
+    }
   });
 
   it('filters invites by status and events by date range', async () => {

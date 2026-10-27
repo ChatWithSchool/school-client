@@ -25,7 +25,8 @@ export type Announcement = {
 };
 
 // Shared collections (openapi.yaml components/schemas). Dates without a time are 'YYYY-MM-DD'
-// strings, date-times are ISO strings. A `| null` field is sent as null, never left out.
+// strings, date-times are ISO strings. A field with `?` may be left out of the response. A field
+// typed `| null` is always sent, with null when it has no value, so check it with `=== null`.
 
 export type Room = {
   id: string;
@@ -56,10 +57,10 @@ export type TeachingAssignment = {
 export type Lesson = {
   id: string;
   classId: string;
-  groupId?: string | null;
+  groupId: string | null;
   subjectId: string;
   teacherId: string;
-  roomId?: string | null;
+  roomId: string | null;
   /** 0 = Sunday ... 5 = Friday */
   dayOfWeek: number;
   /** 1 to 10 */
@@ -78,7 +79,7 @@ export type Invite = {
   studentIds?: string[];
   message?: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
-  invitedBy?: string;
+  invitedBy: string;
   createdAt: string;
   expiresAt: string;
 };
@@ -88,11 +89,11 @@ export type Assessment = {
   title: string;
   type: 'exam' | 'quiz' | 'assignment';
   classId: string;
-  groupId?: string | null;
+  groupId: string | null;
   subjectId: string;
   teacherId: string;
-  termId?: string | null;
-  date?: string | null;
+  termId: string | null;
+  date: string | null;
   /** 0 to 100 */
   weight?: number;
   /** how many grades were entered (the column in G04) */
@@ -124,9 +125,9 @@ export type AttendanceRecord = {
   studentId: string;
   date: string;
   /** null = daily attendance */
-  period?: number | null;
+  period: number | null;
   status: 'present' | 'absent' | 'late';
-  markedBy?: string;
+  markedBy: string;
   updatedAt?: string;
 };
 
@@ -135,9 +136,15 @@ export type AttendanceAlert = {
   studentId: string;
   classId: string;
   type: 'streak' | 'monthly';
+  /** the first absence of the case */
   since: string;
+  /** 'YYYY-MM' of a monthly alert; null for a streak */
+  month: string | null;
+  /** how many absences: the length of the streak, or the absences in the month */
   count?: number;
   status: 'open' | 'closed';
   closeNote?: string;
-  closedAt?: string | null;
+  /** staff id; null while the alert is open */
+  closedBy: string | null;
+  closedAt: string | null;
 };
