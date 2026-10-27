@@ -1,33 +1,18 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
+import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
+import { sharedHandlers } from './shared/handlers';
 
-const err = (
-  status: number,
-  code: string,
-  message: string,
-  details?: { field: string; message: string }[],
-) => HttpResponse.json({ error: { code, message, details } }, { status });
-
-function userOf(request: Request) {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const email = token.startsWith('mock.') ? token.slice(5) : '';
-  return USERS[email] ? { email, ...USERS[email] } : null;
-}
-
-/** Same rule as the server: 401 without a user, 403 without access, 403 READ_ONLY when writing with a read level. */
-function authz(request: Request, screen: string, action: 'read' | 'write') {
-  const user = userOf(request);
-  if (!user) return { res: err(401, 'UNAUTHENTICATED', 'נדרשת התחברות') };
-  const level = permissionsFor(user.roles)[screen];
-  if (!level) return { res: err(403, 'FORBIDDEN', 'אין הרשאה לפעולה זו') };
-  if (action === 'write' && level === 'read')
-    return { res: err(403, 'READ_ONLY', 'יש הרשאת צפייה בלבד') };
-  return { user };
-}
-
-/** Mock API. Add handlers for your endpoints so your screen works before the server is ready. */
+/**
+ * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
+ *
+ * The GET handlers for the shared collections (rooms, events, lessons, teaching assignments,
+ * invites, assessments, grades, student tags, attendance and attendance alerts) already exist in
+ * ./shared/handlers.ts. Do not add them again here: add only the write handlers (POST, PUT,
+ * PATCH, DELETE) of your own screen, and change the data in ./shared so the GET handlers see it.
+ */
 export const handlers = [
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
@@ -97,4 +82,6 @@ export const handlers = [
     a.read = true;
     return new HttpResponse(null, { status: 204 });
   }),
+
+  ...sharedHandlers,
 ];
