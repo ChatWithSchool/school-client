@@ -21,6 +21,7 @@ jobs:
       - run: npm test
       # the API address is /api (same site as the pages), so one build works for dev and stage
       - run: npm run build
+      - run: npm run build-storybook
       - name: Keep the build for the deploy job
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
