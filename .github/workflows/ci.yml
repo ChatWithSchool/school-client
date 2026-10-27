@@ -1,4 +1,5 @@
 name: CI
+
 on:
   pull_request:
     branches: [dev, stage]
@@ -18,5 +19,59 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      # the API address is /api (same site as the pages), so one build works for dev and stage
       - run: npm run build
-      - run: npm run build-storybook
+      - name: Keep the build for the deploy job
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  # After a merge to dev or stage (not on pull requests), and only if verify passed:
+  # copy the build to the EC2 instance. See docs/deploy.md.
+  deploy:
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # the environment is named like the branch (dev or stage); its secrets and rules live in GitHub
+    environment: ${{ github.ref_name }}
+    concurrency:
+      group: deploy-client-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      ENV_NAME: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Prepare SSH
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # "ec2" is the short name used below; the server's identity must match known_hosts
+          printf 'Host ec2\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n' "$EC2_HOST" "$EC2_USER" > ~/.ssh/config
+
+      - name: Copy the build as a new release
+        run: rsync -az --delete dist/ "ec2:/srv/cws/$ENV_NAME/client/releases/$GITHUB_SHA/"
+
+      - name: Switch to the new release (one atomic step) and remove old releases
+        run: |
+          # shellcheck disable=SC2029  # the values are expanded here on purpose
+          ssh ec2 "set -e; cd /srv/cws/$ENV_NAME/client; ln -sfn releases/$GITHUB_SHA current.new; mv -Tf current.new current; ls -1dt releases/* | tail -n +6 | xargs -r rm -rf"
+
+      - name: Check the site from outside
+        run: curl -fsS --retry 5 --retry-delay 3 "https://cws-$ENV_NAME.safeai613.com/" | grep -q 'id="root"'

@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/utils';
 import ReferenceAnnouncements from '.';
@@ -34,8 +34,10 @@ describe('reference announcements screen', () => {
     renderWithProviders(<ReferenceAnnouncements />, { token: TEACHER });
     const item = (await screen.findByText('עדכון מערכת שעות')).closest('li')!;
     await userEvent.click(within(item).getByRole('button', { name: 'סימון כנקרא' }));
-    await within(item).findByText('עדכון מערכת שעות');
-    expect(within(item).queryByRole('button', { name: 'סימון כנקרא' })).not.toBeInTheDocument();
+    // the button disappears only after the server answers and the list is loaded again, so wait for it
+    await waitFor(() =>
+      expect(within(item).queryByRole('button', { name: 'סימון כנקרא' })).not.toBeInTheDocument(),
+    );
   });
 
   it('shows "no permission" to a parent', async () => {
