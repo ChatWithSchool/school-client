@@ -65,7 +65,7 @@ props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפי
 ## אוספים (Mongoose)
 
 **בבעלות המסך:** אין
-**נקראים:** students, groups, student_tags, classes
+**נקראים:** students (כולל tags), groups, classes
 
 ## קריטריוני קבלה
 
