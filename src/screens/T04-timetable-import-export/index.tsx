@@ -62,7 +62,7 @@ const columns: TableColumn<ValidationRow>[] = [
     key: 'issue',
     header: 'שגיאה / התנגשות',
     cell: (row) => row.issue,
-    className: 'min-w-[190px] text-right',
+    className: 'min-w-48 text-end',
   },
   {
     key: 'status',
@@ -72,20 +72,20 @@ const columns: TableColumn<ValidationRow>[] = [
         {row.status}
       </Badge>
     ),
-    className: 'min-w-[120px] text-right',
+    className: 'min-w-32 text-end',
   },
   {
     key: 'lesson',
     header: 'שיעור',
     cell: (row) => row.lesson,
-    className: 'min-w-[120px] text-right',
+    className: 'min-w-32 text-end',
   },
   {
     key: 'line',
     header: 'שורה',
     cell: (row) => row.line,
     numeric: true,
-    className: 'min-w-[120px] text-right',
+    className: 'min-w-32 text-end',
   },
 ];
 
