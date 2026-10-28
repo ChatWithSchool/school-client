@@ -4,6 +4,7 @@ import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
 import { sharedHandlers } from './shared/handlers';
+import { STAFF, shared } from './shared';
 
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
@@ -81,6 +82,39 @@ export const handlers = [
     if (!a) return err(404, 'NOT_FOUND', 'ההודעה לא נמצאה');
     a.read = true;
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get('*/api/me/teaching', ({ request }) => {
+    const u = userOf(request);
+    if (!u) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
+    const staffMember = STAFF.find((s) => s.id === u.email);
+    if (!staffMember) return HttpResponse.json({ items: [] });
+    const assignments = shared.teachingAssignments.filter(
+      (a) => a.teacherId === staffMember.id,
+    );
+    const items = assignments.map((a) => {
+      const openAssessments = shared.assessments.filter(
+        (x) => x.classId === a.classId && x.subjectId === a.subjectId && x.gradedCount === 0,
+      ).length;
+      const classStudents = shared.students.filter((s) => s.classId === a.classId);
+      const gradedStudentIds = new Set(
+        shared.grades
+          .filter((g) =>
+            shared.assessments.some(
+              (x) => x.id === g.assessmentId && x.classId === a.classId && x.subjectId === a.subjectId,
+            ),
+          )
+          .map((g) => g.studentId),
+      );
+      const studentsWithoutGrade = classStudents.filter((s) => !gradedStudentIds.has(s.id)).length;
+      return {
+        classId: a.classId,
+        subjectId: a.subjectId,
+        openAssessments,
+        studentsWithoutGrade,
+      };
+    });
+    return HttpResponse.json({ items });
   }),
 
   ...sharedHandlers,
