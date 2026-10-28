@@ -46,7 +46,7 @@ function formatDateValue(date: Date | null) {
 }
 
 export default function Screen() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [selectedClass, setSelectedClass] = useState(CLASS_OPTIONS[2]?.value ?? '');
   const [effectiveDate, setEffectiveDate] = useState<Date | null>(new Date('2026-09-01'));
