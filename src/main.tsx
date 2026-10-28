@@ -6,8 +6,12 @@ import { store } from './app/store';
 import './index.css';
 
 async function start() {
-  // VITE_USE_MOCKS=true: work without a server, with the data in src/mocks
-  if (import.meta.env.VITE_USE_MOCKS === 'true') {
+  // Default to mock mode during local development so the app works even when no .env file exists.
+  const useMocks =
+    import.meta.env.VITE_USE_MOCKS === 'true' ||
+    (import.meta.env.DEV && import.meta.env.VITE_USE_MOCKS === undefined);
+
+  if (useMocks) {
     const { worker } = await import('./mocks/browser');
     await worker.start({ onUnhandledRequest: 'bypass' });
   }
