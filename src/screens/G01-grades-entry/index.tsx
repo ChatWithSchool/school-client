@@ -100,7 +100,7 @@ export default function Screen() {
     {
       key: 'student',
       header: 'תלמיד',
-      className: 'w-[15rem]',
+      className: 'w-60',
       cell: (row) => (
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-100 text-caption text-primary-700">
@@ -113,7 +113,7 @@ export default function Screen() {
     {
       key: 'grade',
       header: 'ציון',
-      className: 'w-[10rem]',
+      className: 'w-40',
       cell: (row) => (
         <GradeCell
           ref={(node) => {
@@ -133,14 +133,14 @@ export default function Screen() {
               focusNextGrade(row.id);
             }
           }}
-          className="w-full min-w-[6.5rem]"
+          className="w-full min-w-28"
         />
       ),
     },
     {
       key: 'feedback',
       header: 'הערה',
-      className: 'w-[22rem]',
+      className: 'w-80',
       cell: (row) => (
         <label className="block">
           <span className="sr-only">הערה לתלמיד</span>
@@ -164,7 +164,7 @@ export default function Screen() {
     {
       key: 'updated',
       header: 'עודכן',
-      className: 'w-[7rem]',
+      className: 'w-28',
       cell: (row) => (
         <span className="text-body text-fg-secondary">{row.updatedAt}</span>
       ),
@@ -190,21 +190,21 @@ export default function Screen() {
           label="ממוצע כיתתי"
           value={average === null ? '—' : `${formatAverage(average)}`}
           trend="none"
-          className="min-h-[110px]"
+          className="min-h-28"
           data-testid="average-metric"
         />
         <MetricCard
           label="ללא ציון"
           value={String(ungradedCount)}
           trend="none"
-          className="min-h-[110px]"
+          className="min-h-28"
         />
         <MetricCard
           label="אחוזי השלמה"
           value={average === null ? '0%' : `${Math.round((rows.filter((row) => row.score !== null).length / rows.length) * 100)}%`}
           trend="up"
           trendText="השלמה מתעדכנת"
-          className="min-h-[110px]"
+          className="min-h-28"
         />
       </div>
 
@@ -227,7 +227,7 @@ export default function Screen() {
           getRowId={(row) => row.id}
           columns={columns}
           className="w-full"
-          wrapperClassName="max-h-[70vh]"
+          wrapperClassName="max-h-screen"
           empty={<div className="p-4 text-center text-body text-fg-secondary">אין תלמידים להצגה.</div>}
         />
       </section>
