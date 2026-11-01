@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-// טיפוס לדוגמה לנתוני התלמיד (אפשר בהמשך להעביר לקובץ types נפרד)
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  PageHeader,
+  Button,
+  SearchField,
+  Select,
+  Table,
+  Pagination,
+  Avatar,
+  Badge,
+  Tag,
+  DropdownMenu,
+  EmptyState,
+} from '../../components/ui';
+import type { TableColumn } from '../../components/ui';
+
 interface Student {
   id: string;
   name: string;
@@ -11,181 +26,245 @@ interface Student {
   status: 'נוכח' | 'איחור' | 'נעדר';
 }
 
-// נתוני דמה (Mock Data) לבדיקה מקומית בספרינט 1
 const MOCK_STUDENTS: Student[] = [
-  {
-    id: '1',
-    name: 'נועם ביטון',
-    className: '1ת',
-    parentName: 'עמית ביטון',
-    parentPhone: '050-000-0000',
-    attendance: '98%',
-    tags: ['חדש'],
-    status: 'נוכח',
-  },
-  {
-    id: '2',
-    name: 'יובל קליין',
-    className: '1ת',
-    parentName: 'שי קליין',
-    parentPhone: '050-000-0001',
-    attendance: '94%',
-    tags: [],
-    status: 'נוכח',
-  },
-  {
-    id: '3',
-    name: 'עדי פרץ',
-    className: '2ת',
-    parentName: 'יובל פרץ',
-    parentPhone: '050-000-0002',
-    attendance: '71%',
-    tags: ['מעקב'],
-    status: 'איחור',
-  },
+  { id: '1', name: 'נועם ביטון', className: 'ח1', parentName: 'עמית ביטון', parentPhone: '050-000-0000', attendance: '98%', tags: ['חדש'], status: 'נוכח' },
+  { id: '2', name: 'יובל קליין', className: 'ח1', parentName: 'שי קליין', parentPhone: '050-000-0001', attendance: '94%', tags: [], status: 'נוכח' },
+  { id: '3', name: 'עדי פרץ', className: 'ח2', parentName: 'יובל פרץ', parentPhone: '050-000-0002', attendance: '71%', tags: ['מעקב'], status: 'איחור' },
+  { id: '4', name: 'תום לוי', className: 'ז1', parentName: 'רון לוי', parentPhone: '050-000-0003', attendance: '88%', tags: ['תמיכה'], status: 'נוכח' },
+  { id: '5', name: 'מיה כהן', className: 'ז2', parentName: 'דנה כהן', parentPhone: '050-000-0004', attendance: '100%', tags: ['חדש'], status: 'נוכח' },
+  { id: '6', name: 'אור שמש', className: 'ט1', parentName: 'גל שמש', parentPhone: '050-000-0005', attendance: '65%', tags: ['מעקב', 'תמיכה'], status: 'נעדר' },
+  { id: '7', name: 'ליאור דוד', className: 'ח3', parentName: 'אבי דוד', parentPhone: '050-000-0006', attendance: '92%', tags: [], status: 'נוכח' },
+  { id: '8', name: 'שירה גל', className: 'ז1', parentName: 'נועה גל', parentPhone: '050-000-0007', attendance: '85%', tags: ['חוג'], status: 'איחור' },
+  { id: '9', name: 'עמית רוז', className: 'ח2', parentName: 'יעל רוז', parentPhone: '050-000-0008', attendance: '97%', tags: [], status: 'נוכח' },
+  { id: '10', name: 'נדב אלון', className: 'ט1', parentName: 'מרב אלון', parentPhone: '050-000-0009', attendance: '78%', tags: ['מעקב'], status: 'נוכח' },
+];
+
+const PAGE_SIZE = 8;
+
+const STATUS_TONE = {
+  נוכח: 'success',
+  איחור: 'warning',
+  נעדר: 'danger',
+} as const;
+
+const GRADE_OPTIONS = [
+  { value: 'הכל', label: 'שכבה: הכל' },
+  { value: 'ז', label: 'שכבה ז' },
+  { value: 'ח', label: 'שכבה ח' },
+  { value: 'ט', label: 'שכבה ט' },
+];
+
+const CLASS_OPTIONS = [
+  { value: 'הכל', label: 'כיתה: הכל' },
+  { value: 'ז1', label: 'ז1' },
+  { value: 'ז2', label: 'ז2' },
+  { value: 'ח1', label: 'ח1' },
+  { value: 'ח2', label: 'ח2' },
+  { value: 'ח3', label: 'ח3' },
+  { value: 'ט1', label: 'ט1' },
+];
+
+const TAG_OPTIONS = [
+  { value: 'הכל', label: 'תגית: הכל' },
+  { value: 'חדש', label: 'חדש' },
+  { value: 'מעקב', label: 'מעקב' },
+  { value: 'תמיכה', label: 'תמיכה' },
+  { value: 'חוג', label: 'חוג' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'הכל', label: 'סטטוס: הכל' },
+  { value: 'נוכח', label: 'נוכח' },
+  { value: 'איחור', label: 'איחור' },
+  { value: 'נעדר', label: 'נעדר' },
 ];
 
 export default function StudentListPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClass, setSelectedClass] = useState('הכל');
-  const [selectedStatus, setSelectedStatus] = useState('הכל');
+  const params = new URLSearchParams(window.location.search);
+  const [search, setSearch] = useState(params.get('q') ?? '');
+  const [selectedGrade, setSelectedGrade] = useState(params.get('grade') ?? 'הכל');
+  const [selectedClass, setSelectedClass] = useState(params.get('class') ?? 'הכל');
+  const [selectedTag, setSelectedTag] = useState(params.get('tag') ?? 'הכל');
+  const [selectedStatus, setSelectedStatus] = useState(params.get('status') ?? 'הכל');
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const navigate = useNavigate();
 
-  // סינון בסיסי לפי חיפוש וכיתה
-  const filteredStudents = MOCK_STUDENTS.filter((student) => {
-    const matchesSearch = student.name.includes(searchQuery) || student.id.includes(searchQuery);
-    const matchesClass = selectedClass === 'הכל' || student.className === selectedClass;
-    const matchesStatus = selectedStatus === 'הכל' || student.status === selectedStatus;
-    return matchesSearch && matchesClass && matchesStatus;
+  const COLUMNS: TableColumn<Student>[] = [
+    {
+      key: 'name',
+      header: 'תלמיד',
+      cell: (s) => (
+        <div className="flex items-center gap-2">
+          <Avatar name={s.name} size="M" />
+          <span>{s.name}</span>
+        </div>
+      ),
+    },
+    { key: 'class', header: 'כיתה', cell: (s) => s.className },
+    {
+      key: 'parent',
+      header: 'הורה ראשי',
+      cell: (s) => (
+        <div>
+          <div>{s.parentName}</div>
+          <div className="text-fg-muted text-label">{s.parentPhone}</div>
+        </div>
+      ),
+    },
+    { key: 'attendance', header: 'נוכחות החודש', cell: (s) => s.attendance, numeric: true },
+    {
+      key: 'tags',
+      header: 'תגיות',
+      cell: (s) => (
+        <div className="flex flex-wrap gap-1">
+          {s.tags.map((tag) => <Tag key={tag} label={tag} />)}
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'סטטוס',
+      cell: (s) => <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      className: 'w-12',
+      cell: (s) => (
+        <DropdownMenu
+          label={`פעולות עבור ${s.name}`}
+          items={[
+            { label: 'עריכה', icon: 'pencil', onSelect: () => navigate(`/students/s02?id=${s.id}`) },
+            { label: 'צפייה בכרטיס', icon: 'user', onSelect: () => {} },
+            { label: 'הסרה', icon: 'trash-2', tone: 'danger', onSelect: () => {} },
+          ]}
+        />
+      ),
+    },
+  ];
+
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (search) p.set('q', search);
+    if (selectedClass !== 'הכל') p.set('class', selectedClass);
+    if (selectedStatus !== 'הכל') p.set('status', selectedStatus);
+    window.history.replaceState(null, '', p.toString() ? `?${p}` : window.location.pathname);
+    setPage(1);
+  }, [search, selectedGrade, selectedClass, selectedTag, selectedStatus]);
+
+  const filtered = MOCK_STUDENTS.filter((s) => {
+    const q = search.replace(/[-\u05b0-\u05c7]/g, '');
+    const name = s.name.replace(/[-\u05b0-\u05c7]/g, '');
+    const matchSearch = name.includes(q) || s.id.includes(q);
+    const matchGrade = selectedGrade === 'הכל' || s.className.startsWith(selectedGrade);
+    const matchClass = selectedClass === 'הכל' || s.className === selectedClass;
+    const matchTag = selectedTag === 'הכל' || s.tags.includes(selectedTag);
+    const matchStatus = selectedStatus === 'הכל' || s.status === selectedStatus;
+    return matchSearch && matchGrade && matchClass && matchTag && matchStatus;
   });
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isEmpty = MOCK_STUDENTS.length === 0;
+
   return (
-    <div className="p-6 max-w-7xl mx-auto" dir="rtl">
-      {/* כותרת העמוד וכפתורים */}
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">תלמידים</h1>
-          <p className="text-sm text-gray-500 mt-1">412 תלמידים בשנת הלימודים הנוכחית</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            + תלמיד חדש
-          </button>
-          <button className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            ייבוא מקובץ
-          </button>
-        </div>
+    <div className="flex flex-col gap-6 p-6" dir="rtl">
+      <PageHeader
+        title="תלמידים"
+        subtitle={`412 תלמידים בשנת הלימודים הנוכחית`}
+        actions={
+          <>
+            <Button variant="secondary" icon="leading" iconName="upload">
+              ייבוא מקובץ
+            </Button>
+            <Button variant="primary" icon="leading" iconName="plus" onClick={() => navigate('/students/s02')}>
+              תלמיד חדש
+            </Button>
+          </>
+        }
+      />
+
+      {/* סינון */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <SearchField
+          label="חיפוש תלמיד"
+          placeholder="חיפוש שם או תעודת זהות..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-60"
+        />
+        <Select
+          label="שכבה"
+          options={GRADE_OPTIONS}
+          value={selectedGrade}
+          onValueChange={setSelectedGrade}
+        />
+        <Select
+          label="כיתה"
+          options={CLASS_OPTIONS}
+          value={selectedClass}
+          onValueChange={setSelectedClass}
+        />
+        <Select
+          label="תגית"
+          options={TAG_OPTIONS}
+          value={selectedTag}
+          onValueChange={setSelectedTag}
+        />
+        <Select
+          label="סטטוס"
+          options={STATUS_OPTIONS}
+          value={selectedStatus}
+          onValueChange={setSelectedStatus}
+        />
       </div>
 
-      {/* סרגל חיפוש וסינון */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center">
-        <div className="flex-1 min-w-[240px]">
-          <input
-            type="text"
-            placeholder="חיפוש שם או תעודת זהות..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="הכל">כיתה: הכל</option>
-            <option value="1ת">1ת</option>
-            <option value="2ת">2ת</option>
-          </select>
-        </div>
-        <div>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="הכל">סטטוס: הכל</option>
-            <option value="נוכח">נוכח</option>
-            <option value="איחור">איחור</option>
-            <option value="נעדר">נעדר</option>
-          </select>
-        </div>
-      </div>
+      {/* טבלה */}
+      <Table
+        caption="רשימת תלמידים"
+        columns={COLUMNS}
+        rows={pageRows}
+        getRowId={(s) => s.id}
+        selectable
+        selectedIds={selectedIds}
+        onSelectedChange={setSelectedIds}
+        rowLabel={(s) => `בחירת ${s.name}`}
+        empty={
+          isEmpty ? (
+            <EmptyState
+              variant="empty"
+              title="עוד לא נוספו תלמידים"
+              action={
+                <div className="flex gap-2 justify-center">
+                  <Button variant="primary" icon="leading" iconName="plus">תלמיד חדש</Button>
+                  <Button variant="secondary" icon="leading" iconName="upload">ייבוא מקובץ</Button>
+                </div>
+              }
+            />
+          ) : (
+            <EmptyState
+              variant="no-results"
+              title="לא נמצאו תלמידים מתאימים"
+              action={
+                <Button variant="ghost" onClick={() => { setSearch(''); setSelectedGrade('הכל'); setSelectedClass('הכל'); setSelectedTag('הכל'); setSelectedStatus('הכל'); }}>
+                  איפוס סינון
+                </Button>
+              }
+            />
+          )
+        }
+      />
 
-      {/* טבלת תלמידים */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-right border-collapse">
-          <thead>
-            <tr className="bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
-              <th className="p-3">תלמיד</th>
-              <th className="p-3">כיתה</th>
-              <th className="p-3">הורה ראשי</th>
-              <th className="p-3">נוכחות החודש</th>
-              <th className="p-3">תגיות</th>
-              <th className="p-3">סטטוס</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 text-sm">
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-3 font-medium text-gray-900 flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
-                      {student.name.charAt(0)}
-                    </span>
-                    {student.name}
-                  </td>
-                  <td className="p-3 text-gray-600">{student.className}</td>
-                  <td className="p-3 text-gray-600">
-                    <div>{student.parentName}</div>
-                    <div className="text-xs text-gray-400">{student.parentPhone}</div>
-                  </td>
-                  <td className="p-3 text-gray-600 font-medium">{student.attendance}</td>
-                  <td className="p-3">
-                    {student.tags.map((tag, idx) => (
-                      <span key={idx} className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-medium">
-                        {tag}
-                      </span>
-                    ))}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        student.status === 'נוכח'
-                          ? 'bg-green-100 text-green-800'
-                          : student.status === 'איחור'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {student.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-500">
-                  לא נמצאו תלמידים מתאימים
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* תחתית - עימוד */}
-      <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-        <span>מציג תוצאות עבור רשימת התלמידים</span>
-        <div className="flex gap-1">
-          <button className="px-3 py-1 border border-gray-300 rounded bg-white font-semibold text-blue-600">1</button>
-          <button className="px-3 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50">2</button>
-          <button className="px-3 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50">3</button>
+      {/* עימוד */}
+      {filtered.length > 0 && (
+        <div className="flex justify-between items-center">
+          <span className="text-body text-fg-secondary">
+            מציג {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} מתוך {filtered.length}
+          </span>
+          <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
-
-
