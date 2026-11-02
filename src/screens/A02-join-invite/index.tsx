@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button, TextField, Alert } from '../../components/ui';
+import { LoadingSkeleton, ErrorState, ForbiddenState } from '../../components/StateViews';
 
 export default function JoinInviteScreen() {
-  const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -13,6 +13,7 @@ export default function JoinInviteScreen() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [status] = useState<'loading' | 'error' | 'forbidden' | 'ready'>('ready');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,21 +43,25 @@ export default function JoinInviteScreen() {
     navigate('/login');
   };
 
+  if (status === 'loading') return <LoadingSkeleton />;
+  if (status === 'error') return <ErrorState message="שגיאה בטעינת ההזמנה" />;
+  if (status === 'forbidden') return <ForbiddenState />;
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 text-right" dir="rtl">
-      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-md border border-gray-100">
+    <div className="flex justify-center items-center min-h-screen bg-page text-start" dir="rtl">
+      <div className="w-full max-w-md p-8 bg-surface rounded-xl shadow-md border border-line">
         
         {/* תגית עליונה וכותרת */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-xl font-bold text-gray-900">הצטרפות בהזמנה (הגדרת חשבון)</h1>
-          <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
+          <h1 className="text-h3 text-fg">הצטרפות בהזמנה (הגדרת חשבון)</h1>
+          <div className="flex items-center gap-2 bg-primary-600 text-white px-3 py-1 rounded-md text-label font-medium">
             <span>ניהול פדגוגי</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
           </div>
         </div>
 
         {/* תיבת פרטי ההזמנה (לקריאה בלבד) */}
-        <div className="bg-blue-50 p-4 rounded-lg mb-6 text-sm text-blue-900 flex flex-col gap-1 text-center font-medium">
+        <div className="bg-info-50 p-4 rounded-lg mb-6 text-body text-info-700 flex flex-col gap-1 text-center font-medium">
           <p>שם המוסד</p>
           <p>התפקיד שהוקצה</p>
           <p>אימייל (לקריאה בלבד)</p>
@@ -118,7 +123,7 @@ export default function JoinInviteScreen() {
             <Button type="submit" variant="primary" className="w-full">
               יצירת חשבון
             </Button>
-            <Button type="button" variant="secondary" className="w-full">
+            <Button type="button" variant="secondary" className="w-full" onClick={() => navigate('/login')}>
               יש לי כבר חשבון
             </Button>
           </div>
