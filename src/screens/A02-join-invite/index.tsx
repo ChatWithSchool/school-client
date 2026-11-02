@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, TextField, Alert } from '../../components/ui';
+import { Button, TextField, Alert, Badge } from '../../components/ui';
 import { LoadingSkeleton, ErrorState, ForbiddenState } from '../../components/StateViews';
 
 export default function JoinInviteScreen() {
@@ -54,10 +54,7 @@ export default function JoinInviteScreen() {
         {/* תגית עליונה וכותרת */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-h3 text-fg">הצטרפות בהזמנה (הגדרת חשבון)</h1>
-          <div className="flex items-center gap-2 bg-primary-600 text-white px-3 py-1 rounded-md text-label font-medium">
-            <span>ניהול פדגוגי</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-          </div>
+          <Badge tone="primary" icon="check">ניהול פדגוגי</Badge>
         </div>
 
         {/* תיבת פרטי ההזמנה (לקריאה בלבד) */}
