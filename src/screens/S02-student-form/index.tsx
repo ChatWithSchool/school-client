@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PageHeader,
@@ -152,7 +152,7 @@ export default function StudentFormPage() {
       <PageHeader
         title={isEdit ? 'עריכת תלמיד' : 'תלמיד חדש'}
         breadcrumbs={[
-          { label: 'תלמידים', href: '/students/s01' },
+          { label: 'תלמידים', to: '/students/s01' },
           { label: isEdit ? 'עריכת תלמיד' : 'תלמיד חדש' },
         ]}
       />
