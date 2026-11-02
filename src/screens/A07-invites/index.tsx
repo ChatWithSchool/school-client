@@ -12,6 +12,7 @@ import {
   Alert,
   useToast,
 } from '../../components/ui';
+import { ErrorState, ForbiddenState } from '../../components/StateViews';
 import type { TableColumn } from '../../components/ui';
 
 type Invite = {
@@ -20,23 +21,45 @@ type Invite = {
   role: string;
   sentAt: string;
   expiresAt: string;
+  sentAtDate: Date;
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  teacher: 'מורה',
+  teacher: 'מחנך/ת',
+  professional: 'מורה מקצועי',
   parent: 'הורה',
-  staff: 'צוות',
 };
+
+const ROLE_TONE: Record<string, 'primary' | 'accent' | 'neutral'> = {
+  teacher: 'primary',
+  professional: 'primary',
+  parent: 'neutral',
+};
+
+function isExpired(sentAtDate: Date) {
+  const diff = (Date.now() - sentAtDate.getTime()) / (1000 * 60 * 60 * 24);
+  return diff > 7;
+}
 
 const PENDING_COLUMNS: TableColumn<Invite>[] = [
   { key: 'email', header: 'אימייל', cell: (r) => r.email },
   {
     key: 'role',
     header: 'תפקיד',
-    cell: (r) => <Badge tone="neutral">{ROLE_LABELS[r.role] ?? r.role}</Badge>,
+    cell: (r) => <Badge tone={ROLE_TONE[r.role] ?? 'neutral'}>{ROLE_LABELS[r.role] ?? r.role}</Badge>,
   },
   { key: 'sentAt', header: 'נשלחה ב', cell: (r) => r.sentAt, numeric: true },
-  { key: 'expiresAt', header: 'פגה ב', cell: (r) => r.expiresAt, numeric: true },
+  {
+    key: 'expiresAt',
+    header: 'פגה ב',
+    cell: (r) =>
+      isExpired(r.sentAtDate) ? (
+        <span className="text-danger-700 font-semibold">פגה</span>
+      ) : (
+        r.expiresAt
+      ),
+    numeric: true,
+  },
   {
     key: 'actions',
     header: 'פעולות',
@@ -89,9 +112,20 @@ function ActionsMenu({ invite }: { invite: Invite }) {
 export default function InvitesScreen() {
   const toast = useToast();
   const [dupError, setDupError] = useState(false);
+  const [error, setError] = useState(false);
+  const [forbidden] = useState(false);
 
   // TODO: replace with real API data (GET /invites?status=pending)
-  const pendingRows: Invite[] = [];
+  const now = new Date();
+  const daysAgo = (n: number) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
+  const fmt = (d: Date) => `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}`;
+
+  const pendingRows: Invite[] = [
+    { id: '1', email: 'flor.perez@school.example', role: 'teacher', sentAt: fmt(daysAgo(2)), expiresAt: fmt(new Date(daysAgo(2).getTime() + 7*24*60*60*1000)), sentAtDate: daysAgo(2) },
+    { id: '2', email: 'yael.fridman@school.example', role: 'professional', sentAt: fmt(daysAgo(1)), expiresAt: fmt(new Date(daysAgo(1).getTime() + 7*24*60*60*1000)), sentAtDate: daysAgo(1) },
+    { id: '3', email: 'noam.hadad@school.example', role: 'teacher', sentAt: fmt(daysAgo(8)), expiresAt: fmt(new Date(daysAgo(8).getTime() + 7*24*60*60*1000)), sentAtDate: daysAgo(8) },
+    { id: '4', email: 'gali.levi@school.example', role: 'parent', sentAt: fmt(daysAgo(10)), expiresAt: fmt(new Date(daysAgo(10).getTime() + 7*24*60*60*1000)), sentAtDate: daysAgo(10) },
+  ];
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -101,56 +135,62 @@ export default function InvitesScreen() {
   };
 
   const newTabContent = (
-    <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm max-w-4xl">
-      <h2 className="text-xl font-semibold text-gray-900 mb-8">הזמנה חדשה</h2>
+    <form className="space-y-6 w-full" onSubmit={handleSubmit}>
+      <div className="bg-surface rounded-xl border border-line p-8 shadow-sm">
+        <h2 className="text-h2 text-fg mb-8">הזמנה חדשה</h2>
 
-      {dupError && (
-        <Alert tone="danger" className="mb-6" dismissible onDismiss={() => setDupError(false)}>
-          כתובת האימייל כבר קיימת בהזמנה פעילה.
-        </Alert>
-      )}
+        {dupError && (
+          <Alert tone="danger" className="mb-6" dismissible onDismiss={() => setDupError(false)}>
+            כתובת האימייל כבר קיימת בהזמנה פעילה.
+          </Alert>
+        )}
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* שורה 1: אימייל ותפקיד (לפי סדר ה-SPEC) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TextField label="אימייל *" placeholder="הקלידו כאן" type="email" required />
-          <Select
-            label="תפקיד *"
-            placeholder="בחירה"
-            options={[
-              { value: 'teacher', label: 'מורה' },
-              { value: 'parent', label: 'הורה' },
-              { value: 'staff', label: 'צוות' },
-            ]}
-          />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TextField label="אימייל *" placeholder="הקלידו כאן" type="email" />
+            <Select
+              label="תפקיד *"
+              placeholder="בחירה"
+              options={[
+                { value: 'teacher', label: 'מחנך/ת' },
+                { value: 'professional', label: 'מורה מקצועי' },
+                { value: 'parent', label: 'הורה' },
+              ]}
+            />
+          </div>
+          <TextField label="לכיתות / ילדים" placeholder="הקלידו כאן" />
+          <TextField label="הודעה אישית" placeholder="הקלידו כאן" />
         </div>
+      </div>
 
-        <TextField label="לכיתות / ילדים" placeholder="הקלידו כאן" />
-        <TextField label="הודעה אישית" placeholder="הקלידו כאן" />
-
-        <div className="pt-4">
-          <Button type="submit" variant="primary">
-            שלח הזמנה
-          </Button>
-        </div>
-      </form>
-    </div>
+      <div className="flex items-center justify-end gap-3">
+        <Button type="submit" variant="primary">שלח הזמנה</Button>
+        <Button type="button" variant="secondary">שלח שוב</Button>
+        <Button type="button" variant="secondary">בטל הזמנה</Button>
+      </div>
+    </form>
   );
 
   const pendingTabContent = (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm max-w-5xl">
+    <div className="bg-surface rounded-xl border border-line shadow-sm w-full">
+      <div className="p-6 pb-0">
+        <h2 className="text-h2 text-fg text-start">הזמנות ממתינות</h2>
+      </div>
       <Table
         caption="הזמנות ממתינות"
         columns={PENDING_COLUMNS}
         rows={pendingRows}
         getRowId={(r) => r.id}
-        empty={<span className="text-sm text-gray-500">אין הזמנות ממתינות.</span>}
+        empty={<span className="text-body text-fg-secondary">אין הזמנות ממתינות.</span>}
       />
     </div>
   );
 
+  if (forbidden) return <ForbiddenState />;
+  if (error) return <ErrorState message="אירעה שגיאה בטעינת ההזמנות" onRetry={() => setError(false)} />;
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 p-8 space-y-8" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-subtle p-8 space-y-8" dir="rtl">
       <PageHeader title="הזמנת משתמשים והזמנות ממתינות" />
 
       <Tabs
@@ -159,7 +199,6 @@ export default function InvitesScreen() {
         items={[
           { value: 'pending', label: 'ממתינות', content: pendingTabContent },
           { value: 'new', label: 'הזמנה חדשה', content: newTabContent },
-          { value: 'answered', label: 'נענו', disabled: true },
         ]}
       />
     </div>
