@@ -14,6 +14,7 @@ import {
   EmptyState,
 } from '../../components/ui';
 import type { TableColumn } from '../../components/ui';
+import { LoadingSkeleton, ErrorState, ForbiddenState } from '../../components/StateViews';
 
 interface Student {
   id: string;
@@ -88,7 +89,15 @@ export default function StudentListPage() {
   const [selectedStatus, setSelectedStatus] = useState(params.get('status') ?? 'הכל');
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [forbidden] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   const COLUMNS: TableColumn<Student>[] = [
     {
@@ -154,8 +163,8 @@ export default function StudentListPage() {
   }, [search, selectedGrade, selectedClass, selectedTag, selectedStatus]);
 
   const filtered = MOCK_STUDENTS.filter((s) => {
-    const q = search.replace(/[-\u05b0-\u05c7]/g, '');
-    const name = s.name.replace(/[-\u05b0-\u05c7]/g, '');
+    const q = search.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/-/g, '');
+    const name = s.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/-/g, '');
     const matchSearch = name.includes(q) || s.id.includes(q);
     const matchGrade = selectedGrade === 'הכל' || s.className.startsWith(selectedGrade);
     const matchClass = selectedClass === 'הכל' || s.className === selectedClass;
@@ -185,8 +194,16 @@ export default function StudentListPage() {
         }
       />
 
+      {isLoading ? (
+        <LoadingSkeleton rows={5} />
+      ) : forbidden ? (
+        <ForbiddenState />
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => { setError(null); setIsLoading(true); setTimeout(() => setIsLoading(false), 600); }} />
+      ) : (
+        <>
       {/* סינון */}
-      <div className="flex flex-wrap gap-3 items-end">
+      <div className="flex flex-wrap gap-3 items-end" role="search">
         <SearchField
           label="חיפוש תלמיד"
           placeholder="חיפוש שם או תעודת זהות..."
@@ -233,7 +250,7 @@ export default function StudentListPage() {
         empty={
           isEmpty ? (
             <EmptyState
-              variant="empty"
+              variant="first-use"
               title="עוד לא נוספו תלמידים"
               action={
                 <div className="flex gap-2 justify-center">
@@ -258,12 +275,14 @@ export default function StudentListPage() {
 
       {/* עימוד */}
       {filtered.length > 0 && (
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center" aria-label="עימוד">
           <span className="text-body text-fg-secondary">
             מציג {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} מתוך {filtered.length}
           </span>
           <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
         </div>
+      )}
+        </>
       )}
     </div>
   );
