@@ -15,5 +15,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     env: { VITE_API_URL: 'http://localhost:3000/api' },
+    maxWorkers: 1,
+    minWorkers: 1,
   },
 });

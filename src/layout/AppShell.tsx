@@ -1,6 +1,6 @@
 import { Link, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { useGetMeQuery } from '../api/authApi';
-import { useAppDispatch } from '../app/hooks';
+import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { Icon } from '../components/Icon';
 import { LoadingSkeleton } from '../components/StateViews';
 import { SidebarItem, TopBar } from '../components/ui';
@@ -16,7 +16,8 @@ import { SUBACTIVE, familyOf, sidebarKeyOf, visibleSidebar, visibleSubnav } from
 export function AppShell() {
   const { pathname } = useLocation();
   const dispatch = useAppDispatch();
-  const { data: me, isLoading } = useGetMeQuery();
+  const token = useAppSelector((state) => state.auth.token);
+  const { data: me, isLoading } = useGetMeQuery(undefined, { skip: !token });
   const current = SCREENS.find((s) => matchPath({ path: s.path, end: true }, pathname));
   const permissions = me?.permissions ?? {};
   const sidebar = visibleSidebar(permissions);
