@@ -29,7 +29,7 @@ export default function TimetableEditScreen() {
   });
 
   const getLessonAt = (day: string, hour: number) => {
-    return lessons.find((l) => l.day === day && Number(l.hour) === Number(hour));
+    return lessons.find((l) => l.day.trim() === day.trim() && Number(l.hour) === Number(hour));
   };
 
   const handleSaveLesson = () => {
@@ -57,7 +57,7 @@ export default function TimetableEditScreen() {
 
     // בדיקת התנגשות חדר
     const roomConflict = lessons.find(
-      (l) => l.day === targetDay && Number(l.hour) === targetHour && l.room === room
+      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.room === room
     );
     if (roomConflict) {
       setConflict({
@@ -69,7 +69,7 @@ export default function TimetableEditScreen() {
 
     // בדיקת התנגשות מורה
     const teacherConflict = lessons.find(
-      (l) => l.day === targetDay && Number(l.hour) === targetHour && l.teacher === teacher
+      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.teacher === teacher
     );
     if (teacherConflict) {
       setConflict({
@@ -81,7 +81,7 @@ export default function TimetableEditScreen() {
 
     // בדיקת התנגשות כיתה
     const classConflict = lessons.find(
-      (l) => l.day === targetDay && Number(l.hour) === targetHour && l.className === className
+      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.className === className
     );
     if (classConflict) {
       setConflict({
@@ -102,7 +102,7 @@ export default function TimetableEditScreen() {
       color: 'bg-blue-600 text-white font-bold',
     };
 
-    // שימוש ב-Callback כדי למנוע דריסת סטייט בטוחה
+    // שימוש ב-Callback לעדכון הסטייט בצורה בטוחה
     setLessons((prev) => [...prev, newLesson]);
 
     // איפוס טופס
@@ -131,7 +131,7 @@ export default function TimetableEditScreen() {
 
       {/* רשת מערכת השעות */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
-        <div className="min-w-[800px]">
+        <div style={{ minWidth: '800px' }}>
           <div className="grid grid-cols-7 gap-2 mb-2 text-center text-sm font-semibold text-gray-700 bg-gray-50 p-2 rounded-lg">
             <div className="text-start ps-2">שעה</div>
             {DAYS.map((day) => (
@@ -141,10 +141,14 @@ export default function TimetableEditScreen() {
 
           <div className="space-y-2">
             {HOURS.map((hourObj) => (
-              <div key={hourObj.id} className="grid grid-cols-7 gap-2 items-center text-xs min-h-[52px]">
+              <div 
+                key={hourObj.id} 
+                className="grid grid-cols-7 gap-2 items-center text-xs"
+                style={{ minHeight: '52px' }}
+              >
                 <div className="text-start ps-2 text-gray-500 font-medium">
                   <div className="font-semibold text-gray-800">{hourObj.label}</div>
-                  <div className="text-[11px]">{hourObj.time}</div>
+                  <div style={{ fontSize: '11px' }}>{hourObj.time}</div>
                 </div>
 
                 {DAYS.map((day) => {
@@ -153,7 +157,8 @@ export default function TimetableEditScreen() {
                     <div
                       key={day}
                       onClick={() => setDayHourInput(`${day} ${hourObj.id}`)}
-                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer min-h-[48px] flex flex-col justify-center items-center ${
+                      style={{ minHeight: '48px' }}
+                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer flex flex-col justify-center items-center ${
                         lesson
                           ? 'bg-blue-600 text-white font-bold border-transparent shadow-md'
                           : 'bg-gray-50 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50/30'
@@ -161,8 +166,8 @@ export default function TimetableEditScreen() {
                     >
                       {lesson ? (
                         <>
-                          <div className="font-bold text-xs">{lesson.subject}</div>
-                          <div className="text-[10px] opacity-90">{lesson.room}</div>
+                          <div className="font-bold text-xs text-white">{lesson.subject}</div>
+                          <div className="opacity-90 text-white" style={{ fontSize: '10px' }}>{lesson.room}</div>
                         </>
                       ) : (
                         <span className="text-gray-300 hover:text-blue-500 text-base">+</span>
@@ -263,7 +268,6 @@ export default function TimetableEditScreen() {
         </div>
 
         <div className="flex justify-end pt-2">
-          {/* הוספת type="button" מונעת רענון עמוד מיותר */}
           <Button type="button" variant="primary" onClick={handleSaveLesson}>
             שמירת שיעור
           </Button>
