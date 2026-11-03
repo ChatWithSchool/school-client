@@ -55,17 +55,15 @@ export default function StudentTransferScreen() {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
         />
 
-        {/* השפעות */}
-        <Alert 
-          title="השפעות העברה"
-          message="נוכחות וציונים היסטוריים עד תאריך התחולה יישארו משויכים לכיתה הישנה."
-        />
+       {/* השפעות */}
+        <Alert title="השפעות העברה">
+          נוכחות וציונים היסטוריים עד תאריך התחולה יישארו משויכים לכיתה הישנה.
+        </Alert>
 
         {successMessage && (
-          <Alert 
-            title="הצלחה"
-            message="ההעברה בוצעה בהצלחה ונשמרה בהיסטוריה."
-          />
+          <Alert title="הצלחה">
+            ההעברה בוצעה בהצלחה ונשמרה בהיסטוריה.
+          </Alert>
         )}
 
         {/* פעולות */}
