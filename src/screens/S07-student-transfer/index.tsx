@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button, Select, TextField, DatePicker, Alert } from '../../components/ui';
 
 export default function StudentTransferScreen() {
   const [selectedClass, setSelectedClass] = useState('');
-  const [transferDate, setTransferDate] = useState('');
+  const [transferDate, setTransferDate] = useState<Date | null>(null);
   const [reason, setReason] = useState('');
   const [successMessage, setSuccessMessage] = useState(false);
 
@@ -38,33 +38,31 @@ export default function StudentTransferScreen() {
           label="כיתה חדשה *"
           options={classOptions}
           value={selectedClass}
-          onChange={(val: any) => setSelectedClass(val)}
+          onValueChange={(val: string) => setSelectedClass(val)}
         />
 
         {/* תאריך תחולה */}
         <DatePicker
           label="תאריך תחולה *"
           value={transferDate}
-          onChange={(date: any) => setTransferDate(date)}
+          onChange={(date: Date | null) => setTransferDate(date)}
         />
 
         {/* סיבה (אופציונלי) */}
         <TextField
           label="סיבה (אופציונלי)"
           value={reason}
-          onChange={(e: any) => setReason(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
         />
 
         {/* השפעות */}
         <Alert 
-          variant="info" 
           title="השפעות העברה"
           message="נוכחות וציונים היסטוריים עד תאריך התחולה יישארו משויכים לכיתה הישנה."
         />
 
         {successMessage && (
           <Alert 
-            variant="success" 
             title="הצלחה"
             message="ההעברה בוצעה בהצלחה ונשמרה בהיסטוריה."
           />
@@ -72,10 +70,10 @@ export default function StudentTransferScreen() {
 
         {/* פעולות */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-          <Button variant="primary" onClick={handleTransfer}>
+          <Button onClick={handleTransfer}>
             אשר העברה
           </Button>
-          <Button variant="secondary" onClick={() => {}}>
+          <Button onClick={() => {}}>
             בטל
           </Button>
         </div>
