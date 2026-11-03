@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function Screen() {
-נתונים לדוגמה לטבלת הבדיקה בהתאם לפיגמה
   const [rows] = useState([
     { row: 1, name: 'אופק גולדשטיין', avatar: 'א', className: '1ח', status: 'תקין', error: '—', statusType: 'success' },
     { row: 2, name: 'ים דהן', avatar: 'י', className: '2ת', status: 'תקין', error: '—', statusType: 'success' },
