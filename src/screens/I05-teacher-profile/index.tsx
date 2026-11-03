@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../../components/ui';
 
 export default function Screen() {
@@ -104,12 +104,12 @@ export default function Screen() {
         <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">מקצועות וכיתות</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
+            <table className="w-full text-start border-collapse">
               <thead>
                 <tr className="border-b border-gray-200 text-gray-500 text-sm bg-gray-50">
-                  <th className="p-3 font-medium">מקצוע</th>
-                  <th className="p-3 font-medium">כיתה</th>
-                  <th className="p-3 font-medium">שעות בשבוע</th>
+                  <th className="p-3 font-medium text-start">מקצוע</th>
+                  <th className="p-3 font-medium text-start">כיתה</th>
+                  <th className="p-3 font-medium text-start">שעות בשבוע</th>
                 </tr>
               </thead>
               <tbody>
