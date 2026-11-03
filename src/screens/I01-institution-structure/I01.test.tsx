@@ -35,6 +35,6 @@ describe('I01 institution structure wizard', () => {
     await user.click(screen.getByRole('option', { name: '3' }));
 
     expect(screen.getAllByText('יסודי').length).toBeGreaterThan(0);
-    expect(screen.getByText('ז1, ז2, ז3')).toBeInTheDocument();
+    expect(screen.getByText('א, ב, ג')).toBeInTheDocument();
   });
 });
