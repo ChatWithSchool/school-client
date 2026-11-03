@@ -1,5 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Badge, Button, Card, DatePicker, Modal, Select, TextField } from '../../components/ui';
+import { useState } from 'react';
+import {
+  Badge,
+  Button,
+  Card,
+  DatePicker,
+  Modal,
+  Select,
+  TextField,
+  type BadgeTone,
+} from '../../components/ui';
 
 const eventTypes = [
   { value: 'holiday', label: 'חג' },
@@ -22,7 +31,9 @@ const initialEvents = [
   { id: '4', title: 'ערב בית ספר', type: 'event', start: '2026-05-14', end: '2026-05-14', scope: 'all' },
 ];
 
-const typePalette: Record<string, { badge: string; cell: string; label: string }> = {
+type EventTypeValue = (typeof eventTypes)[number]['value'];
+
+const typePalette: Record<EventTypeValue, { badge: BadgeTone; cell: string; label: string }> = {
   holiday: { badge: 'success', cell: 'bg-success-50 border-success-200', label: 'חג' },
   event: { badge: 'primary', cell: 'bg-primary-50 border-primary-200', label: 'אירוע' },
   'parent-day': { badge: 'warning', cell: 'bg-warning-50 border-warning-200', label: 'ימי הורים' },
@@ -45,12 +56,7 @@ export default function Screen() {
     scope: 'all',
   });
 
-  const monthLabel = useMemo(() => 'מרס 2026', []);
-
-  const selectedEvent = useMemo(
-    () => events.find((event) => event.id === editingId) ?? null,
-    [editingId, events],
-  );
+  const monthLabel = 'מרס 2026';
 
   const openNewEvent = () => {
     setEditingId(null);
@@ -126,7 +132,7 @@ export default function Screen() {
           </div>
         </div>
 
-        <div className="grid gap-0 xl:grid-cols-[1.8fr_0.9fr]">
+        <div className="grid gap-0 xl:grid-cols-2">
           <div className="border-b border-line xl:border-b-0 xl:border-e">
             <div className="grid grid-cols-7 border-b border-line bg-subtle">
               {weekdayNames.map((label, index) => (
@@ -147,9 +153,9 @@ export default function Screen() {
                     key={`${day}-${index}`}
                     type="button"
                     className={[
-                      'relative min-h-[94px] border-b border-e border-line p-2 text-start transition hover:bg-subtle',
+                      'relative min-h-24 border-b border-e border-line p-2 text-start transition hover:bg-subtle',
                       day > 28 ? 'opacity-60' : '',
-                      isCurrentDay ? 'bg-primary-50/50' : 'bg-surface',
+                      isCurrentDay ? 'bg-primary-50' : 'bg-surface',
                     ].join(' ')}
                     onClick={openNewEvent}
                   >
@@ -175,7 +181,7 @@ export default function Screen() {
                 {eventTypes.map((item) => (
                   <div key={item.value} className="flex items-center justify-between gap-2 rounded-md bg-subtle px-2 py-2">
                     <span className="text-body text-fg">{item.label}</span>
-                    <Badge tone={typePalette[item.value].badge as any} size="S">
+                    <Badge tone={typePalette[item.value as EventTypeValue].badge} size="S">
                       {item.label}
                     </Badge>
                   </div>
@@ -190,8 +196,8 @@ export default function Screen() {
                   <div key={event.id} className="rounded-md border border-line bg-page p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="text-body-strong text-fg">{event.title}</span>
-                      <Badge tone={typePalette[event.type].badge as any} size="S">
-                        {typePalette[event.type].label}
+                      <Badge tone={typePalette[event.type as EventTypeValue].badge} size="S">
+                        {typePalette[event.type as EventTypeValue].label}
                       </Badge>
                     </div>
                     <div className="mb-2 text-body text-fg-secondary">

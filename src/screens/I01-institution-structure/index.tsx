@@ -55,11 +55,9 @@ export default function Screen() {
 
     return levels.map((value) => {
       const level = gradeLevels.find((item) => item.value === value)?.label ?? value;
-      const levelLetter = (() => {
-        const index = levels.indexOf(value);
-        return String.fromCharCode(0x05d0 + index);
-      })();
-      const classNames = Array.from({ length: count }, (_, index) => `${levelLetter}'${index + 1}`);
+      const classNames = Array.from({ length: count }, (_, index) =>
+        String.fromCharCode(0x05d0 + index),
+      );
 
       return { level, classes: classNames };
     });
