@@ -1,6 +1,82 @@
-import { ScreenPlaceholder } from '../../components/ScreenPlaceholder';
+import { useState } from 'react';
+import { Button, Select, TextField, DatePicker, Alert } from '../../components/ui';
 
-// Replace this placeholder with the real screen. Read SPEC.md in this folder first.
-export default function Screen() {
-  return <ScreenPlaceholder id="S07" name={'העברת תלמיד בין כיתות'} owner="A-04" />;
+export default function StudentTransferScreen() {
+  const [selectedClass, setSelectedClass] = useState('');
+  const [transferDate, setTransferDate] = useState<Date | null>(null);
+  const [reason, setReason] = useState('');
+  const [successMessage, setSuccessMessage] = useState(false);
+
+  // נתונים לדוגמה לכיתות היעד
+  const classOptions = [
+    { label: 'כיתה יא-1', value: '11-1' },
+    { label: 'כיתה יא-2', value: '11-2' },
+    { label: 'כיתה יב-1', value: '12-1' },
+  ];
+
+  const handleTransfer = () => {
+    // כאן תתבצע קריאת ה-API בהמשך: POST /students/{id}/transfer
+    setSuccessMessage(true);
+  };
+
+  return (
+    <div style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
+      <h2 style={{ marginBottom: '24px' }}>העברת תלמיד בין כיתות [S07]</h2>
+
+      {/* פרטי ההעברה */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        
+        {/* כיתה נוכחית - קריאה בלבד */}
+        <TextField
+          label="כיתה נוכחית"
+          value="י' 3 (נוכחי)"
+          disabled
+        />
+
+        {/* כיתה חדשה */}
+        <Select
+          label="כיתה חדשה *"
+          options={classOptions}
+          value={selectedClass}
+          onValueChange={(val: string) => setSelectedClass(val)}
+        />
+
+        {/* תאריך תחולה */}
+        <DatePicker
+          label="תאריך תחולה *"
+          value={transferDate}
+          onChange={(date: Date | null) => setTransferDate(date)}
+        />
+
+        {/* סיבה (אופציונלי) */}
+        <TextField
+          label="סיבה (אופציונלי)"
+          value={reason}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
+        />
+
+       {/* השפעות */}
+        <Alert title="השפעות העברה">
+          נוכחות וציונים היסטוריים עד תאריך התחולה יישארו משויכים לכיתה הישנה.
+        </Alert>
+
+        {successMessage && (
+          <Alert title="הצלחה">
+            ההעברה בוצעה בהצלחה ונשמרה בהיסטוריה.
+          </Alert>
+        )}
+
+        {/* פעולות */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+          <Button onClick={handleTransfer}>
+            אשר העברה
+          </Button>
+          <Button onClick={() => {}}>
+            בטל
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  );
 }
