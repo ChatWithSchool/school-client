@@ -216,7 +216,6 @@ export default function Screen() {
         label="הגדרות המוסד"
         items={[
           { value: 'details', label: 'פרטים', content: detailsTab },
-          { value: 'year', label: 'שנת לימודים', disabled: true },
           { value: 'terms', label: 'מחזורי הערכה', content: termsTab },
         ]}
       />

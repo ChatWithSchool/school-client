@@ -11,7 +11,7 @@ describe('I03 institution settings screen', () => {
     renderWithProviders(<Screen />, { token: MANAGER });
     expect(await screen.findByRole('heading', { name: 'פרטי המוסד והגדרות' })).toBeInTheDocument();
     expect(await screen.findByDisplayValue('בית ספר לדוגמה')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'שנת לימודים' })).toBeDisabled();
+    expect(screen.queryByRole('tab', { name: 'שנת לימודים' })).not.toBeInTheDocument();
   });
 
   it('asks for a name before saving', async () => {
