@@ -1,6 +1,16 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
-import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
+import {
+  DEMO_PASSWORD,
+  USERS,
+  addAnnouncement,
+  addMockSubject,
+  announcements,
+  mockAssignments,
+  mockSubjects,
+  mockTeachingClasses,
+  mockTeachingTeachers,
+} from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
 import { sharedHandlers } from './shared/handlers';
@@ -80,6 +90,80 @@ export const handlers = [
     const a = announcements.find((x) => x.id === params.id);
     if (!a) return err(404, 'NOT_FOUND', 'ההודעה לא נמצאה');
     a.read = true;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get('*/api/subjects', ({ request }) => {
+    const auth = authz(request, 'I06', 'read');
+    if (auth.res) return auth.res;
+    return HttpResponse.json({
+      items: mockSubjects,
+      total: mockSubjects.length,
+      page: 1,
+      size: mockSubjects.length,
+    });
+  }),
+
+  http.post('*/api/subjects', async ({ request }) => {
+    const auth = authz(request, 'I06', 'write');
+    if (auth.res) return auth.res;
+    const body = (await request.json()) as { name?: string; code?: string; grades?: string[] };
+    if (!body.name?.trim() || !body.code?.trim() || !body.grades?.length)
+      return err(400, 'VALIDATION_ERROR', 'יש למלא שם, קוד ושכבות למקצוע');
+    if (
+      mockSubjects.some(
+        (subject) =>
+          subject.name.toLowerCase() === body.name!.trim().toLowerCase() ||
+          subject.code.toLowerCase() === body.code!.trim().toLowerCase(),
+      )
+    )
+      return err(409, 'SUBJECT_EXISTS', 'שם המקצוע או הקוד כבר קיימים');
+    const created = {
+      id: `${Date.now()}`.padStart(24, '0').slice(-24),
+      name: body.name.trim(),
+      code: body.code.trim().toUpperCase(),
+      grades: body.grades,
+    };
+    addMockSubject(created);
+    return HttpResponse.json({ id: created.id }, { status: 201 });
+  }),
+
+  http.get('*/api/teaching-assignments', ({ request }) => {
+    const auth = authz(request, 'I06', 'read');
+    if (auth.res) return auth.res;
+    return HttpResponse.json({
+      classes: mockTeachingClasses,
+      teachers: mockTeachingTeachers,
+      assignments: mockAssignments,
+    });
+  }),
+
+  http.put('*/api/classes/:id/teaching-assignments', async ({ params, request }) => {
+    const auth = authz(request, 'I06', 'write');
+    if (auth.res) return auth.res;
+    const body = (await request.json()) as { subjectId?: string; teacherId?: string | null };
+    if (!body.subjectId || body.teacherId === undefined)
+      return err(400, 'VALIDATION_ERROR', 'יש לבחור מקצוע ולשלוח מורה או ללא שיוך');
+    const classExists = mockTeachingClasses.some((schoolClass) => schoolClass.id === params.id);
+    const subjectExists = mockSubjects.some((subject) => subject.id === body.subjectId);
+    const teacherExists =
+      body.teacherId === null || mockTeachingTeachers.some((teacher) => teacher.id === body.teacherId);
+    if (!classExists || !subjectExists || !teacherExists)
+      return err(404, 'ASSIGNMENT_REFERENCE_NOT_FOUND', 'הכיתה, המקצוע או המורה לא נמצאו');
+    const existingIndex = mockAssignments.findIndex(
+      (item) => item.classId === params.id && item.subjectId === body.subjectId,
+    );
+    if (body.teacherId === null) {
+      if (existingIndex >= 0) mockAssignments.splice(existingIndex, 1);
+    } else {
+      const assignment = {
+        classId: String(params.id),
+        subjectId: body.subjectId!,
+        teacherId: body.teacherId,
+      };
+      if (existingIndex >= 0) mockAssignments[existingIndex] = assignment;
+      else mockAssignments.push(assignment);
+    }
     return new HttpResponse(null, { status: 204 });
   }),
 
