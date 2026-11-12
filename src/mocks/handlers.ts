@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
-import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
+import { 
+  DEMO_PASSWORD, 
+  USERS, 
+  addAnnouncement, 
+  announcements,
+  t03AvailableTeachers,
+  t03UncoveredLessons, } from './data';
 import { landingFor, permissionsFor } from './permissions';
 
 const err = (
@@ -96,5 +102,17 @@ export const handlers = [
     if (!a) return err(404, 'NOT_FOUND', 'ההודעה לא נמצאה');
     a.read = true;
     return new HttpResponse(null, { status: 204 });
+  }),
+
+    http.get('*/api/staff/available', ({ request }) => {
+    const a = authz(request, 'T03', 'read');
+    if (a.res) return a.res;
+    return HttpResponse.json({ items: t03AvailableTeachers });
+  }),
+
+  http.get('*/api/lessons', ({ request }) => {
+    const a = authz(request, 'T03', 'read');
+    if (a.res) return a.res;
+    return HttpResponse.json({ items: t03UncoveredLessons });
   }),
 ];
