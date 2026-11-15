@@ -1,5 +1,17 @@
 import { useState } from 'react';
-import { Button, Modal, PageHeader } from '../../components/ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Modal,
+  PageHeader,
+  SearchField,
+  Table,
+  type TableColumn,
+  Tabs,
+  TextField,
+} from '../../components/ui';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
 
 interface ClassItem {
   id: string;
@@ -14,224 +26,391 @@ interface GroupItem {
   name: string;
   classRef: string;
   studentsCount: number;
+  members: MemberItem[];
 }
 
+interface MemberItem {
+  id: string;
+  name: string;
+  className: string;
+}
+
+const MOCK_CLASSES: ClassItem[] = [
+  { id: '1', name: 'ז1', grade: "ז'", homeroom: 'נועם גולדשטיין', studentsCount: 28 },
+  { id: '2', name: 'ז2', grade: "ז'", homeroom: 'טל חדד', studentsCount: 27 },
+  { id: '3', name: 'ח1', grade: "ח'", homeroom: 'עמית כהן', studentsCount: 30 },
+  { id: '4', name: 'ח2', grade: "ח'", homeroom: 'אופק שפירא', studentsCount: 29 },
+  { id: '5', name: 'ח3', grade: "ח'", homeroom: 'רז אברהמי', studentsCount: 26 },
+  { id: '6', name: 'ט1', grade: "ט'", homeroom: 'שחר ביטון', studentsCount: 31 },
+];
+
+const MOCK_STUDENTS: MemberItem[] = [
+  { id: 's1', name: 'יוסי לוי', className: 'ז1' },
+  { id: 's2', name: 'דנה כהן', className: 'ז2' },
+  { id: 's3', name: 'אורי שפירא', className: 'ח1' },
+  { id: 's4', name: 'מיכל אברהם', className: 'ח2' },
+];
+
+const INITIAL_GROUPS: GroupItem[] = [
+  { id: 'g1', name: "הקבצה א' מתמטיקה", classRef: 'ז1', studentsCount: 2, members: [MOCK_STUDENTS[0], MOCK_STUDENTS[1]] },
+  { id: 'g2', name: 'חוג גמרא עיון', classRef: 'חוצת-כיתה', studentsCount: 1, members: [MOCK_STUDENTS[2]] },
+];
+
+const CLASS_COLUMNS: TableColumn<ClassItem>[] = [
+  {
+    key: 'name',
+    header: 'שם',
+    cell: (row) => <span className="font-medium">{row.name}</span>,
+  },
+  { key: 'grade', header: 'שכבה', cell: (row) => row.grade },
+  {
+    key: 'homeroom',
+    header: 'מחנך',
+    cell: (row) => (
+      <span className="flex items-center gap-2">
+        <Avatar name={row.homeroom} size="S" />
+        {row.homeroom}
+      </span>
+    ),
+  },
+  {
+    key: 'studentsCount',
+    header: 'מספר תלמידים',
+    cell: (row) => <Badge tone="neutral">{String(row.studentsCount)}</Badge>,
+    numeric: true,
+  },
+];
+
+const GROUP_COLUMNS: TableColumn<GroupItem>[] = [
+  {
+    key: 'name',
+    header: 'שם הקבוצה',
+    cell: (row) => <span className="font-medium">{row.name}</span>,
+  },
+  { key: 'classRef', header: 'שייכות כיתתית', cell: (row) => row.classRef },
+  {
+    key: 'studentsCount',
+    header: 'מספר תלמידים',
+    cell: (row) => <Badge tone="neutral">{String(row.studentsCount)}</Badge>,
+    numeric: true,
+  },
+];
+
+type ScreenState = 'loading' | 'error' | 'forbidden' | 'ok';
+
 export default function Screen() {
-  const [activeTab, setActiveTab] = useState<'classes' | 'groups'>('classes');
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [screenState] = useState<ScreenState>('ok');
+  
+  // ניהול הלשונית הפעילה דרך ה-URL בהתאם לדרישת המפרט (?tab=...)
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'groups';
+  });
 
-  // שדות הטופס ליצירת כיתה/קבוצה
-  const [frameName, setFrameName] = useState<string>('');
-  const [grade, setGrade] = useState<string>('');
-  const [homeroom, setHomeroom] = useState<string>('');
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', newTab);
+    window.history.pushState({}, '', url.toString());
+  };
 
-  // נתוני דמה לכיתות בהתאם לתמונה
-  const [classesData, setClassesData] = useState<ClassItem[]>([
-    { id: '1', name: 'ז1', grade: "ז'", homeroom: 'נועם גולדשטיין', studentsCount: 28 },
-    { id: '2', name: 'ז2', grade: "ז'", homeroom: 'טל חדד', studentsCount: 27 },
-    { id: '3', name: 'ח1', grade: "ח'", homeroom: 'עמית כהן', studentsCount: 30 },
-    { id: '4', name: 'ח2', grade: "ח'", homeroom: 'אופק שפירא', studentsCount: 29 },
-    { id: '5', name: 'ח3', grade: "ח'", homeroom: 'רז אברהמי', studentsCount: 26 },
-    { id: '6', name: 'ט1', grade: "ט'", homeroom: 'שחר ביטון', studentsCount: 31 },
-  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // שדות טופס יצירה
+  const [frameName, setFrameName] = useState('');
+  const [grade, setGrade] = useState('');
+  const [homeroom, setHomeroom] = useState('');
+  const [classRef, setClassRef] = useState('חוצת-כיתה');
+  const [formError, setFormError] = useState('');
 
-  // נתוני דמה לקבוצות לימוד
-  const [groupsData, setGroupsData] = useState<GroupItem[]>([
-    { id: 'g1', name: "הקבצה א' מתמטיקה", classRef: 'ז1', studentsCount: 15 },
-    { id: 'g2', name: 'חוג גמרא עיון', classRef: 'חוצת-כיתה', studentsCount: 12 },
-  ]);
+  const [classesData, setClassesData] = useState<ClassItem[]>(MOCK_CLASSES);
+  const [groupsData, setGroupsData] = useState<GroupItem[]>(INITIAL_GROUPS);
+  const [selectedGroup, setSelectedGroup] = useState<GroupItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // סינון תוצאות החיפוש בהתאם לתלמידים שטרם שויכו לקבוצה הנבחרת
+  const currentGroupMembers = selectedGroup?.members || [];
+  const searchResults = searchQuery.trim()
+    ? MOCK_STUDENTS.filter(
+        (s) =>
+          s.name.includes(searchQuery) &&
+          !currentGroupMembers.some((m) => m.id === s.id),
+      ).map((s) => ({ id: s.id, label: `${s.name} (${s.className})` }))
+    : undefined;
 
   const handleCreateNew = async () => {
-    if (!frameName.trim()) return;
+    setFormError('');
+    if (!frameName.trim()) {
+      setFormError('נא להזין שם');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((r) => setTimeout(r, 400));
+      
       if (activeTab === 'classes') {
+        const existingClass = classesData.find(
+          (c) => c.name.trim().toLowerCase() === frameName.trim().toLowerCase()
+        );
+        const existingHomeroom = homeroom.trim() ? classesData.find(
+          (c) => c.homeroom.trim().toLowerCase() === homeroom.trim().toLowerCase()
+        ) : null;
+
+        if (existingClass) {
+          setFormError(`הכיתה "${frameName}" כבר קיימת במערכת.`);
+          setIsLoading(false);
+          return;
+        }
+        if (existingHomeroom) {
+          setFormError(`המחנך "${homeroom}" כבר משויך לכיתה אחרת (${existingHomeroom.name}). מחנך יכול להיות משויך לכיתה אחת בלבד.`);
+          setIsLoading(false);
+          return;
+        }
+
         setClassesData((prev) => [
           ...prev,
           {
             id: String(Date.now()),
-            name: frameName,
-            grade: grade || 'ז\'',
-            homeroom: homeroom || 'טרם הוגדר',
+            name: frameName.trim(),
+            grade: grade.trim() || "ז'",
+            homeroom: homeroom.trim() || 'טרם הוגדר',
             studentsCount: 0,
           },
         ]);
       } else {
         setGroupsData((prev) => [
           ...prev,
-          {
-            id: String(Date.now()),
-            name: frameName,
-            classRef: 'חוצת-כיתה',
-            studentsCount: 0,
+          { 
+            id: String(Date.now()), 
+            name: frameName.trim(), 
+            classRef: classRef.trim() || 'חוצת-כיתה', 
+            studentsCount: 0, 
+            members: [] 
           },
         ]);
       }
+
       setIsModalOpen(false);
       setFrameName('');
       setGrade('');
       setHomeroom('');
-    } catch (err) {
-      console.error('Failed to create', err);
+      setClassRef('חוצת-כיתה');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const openMembers = (group: GroupItem) => {
+    setSelectedGroup(group);
+    setSearchQuery('');
+    setIsMembersModalOpen(true);
+  };
+
+  const addMember = (result: { id: string; label: string }) => {
+    if (!selectedGroup) return;
+    const student = MOCK_STUDENTS.find((s) => s.id === result.id);
+    if (!student) return;
+
+    setGroupsData((prev) =>
+      prev.map((g) => {
+        if (g.id === selectedGroup.id) {
+          const updatedMembers = [...g.members, student];
+          const updatedGroup = {
+            ...g,
+            members: updatedMembers,
+            studentsCount: updatedMembers.length,
+          };
+          setSelectedGroup(updatedGroup);
+          return updatedGroup;
+        }
+        return g;
+      }),
+    );
+    setSearchQuery('');
+  };
+
+  const removeMember = (id: string) => {
+    if (!selectedGroup) return;
+
+    setGroupsData((prev) =>
+      prev.map((g) => {
+        if (g.id === selectedGroup.id) {
+          const updatedMembers = g.members.filter((m) => m.id !== id);
+          const updatedGroup = {
+            ...g,
+            members: updatedMembers,
+            studentsCount: updatedMembers.length,
+          };
+          setSelectedGroup(updatedGroup);
+          return updatedGroup;
+        }
+        return g;
+      }),
+    );
+  };
+
+  if (screenState === 'loading') return <LoadingSkeleton />;
+  if (screenState === 'error')
+    return <ErrorState message="אירעה שגיאה בטעינת הנתונים" onRetry={() => {}} />;
+  if (screenState === 'forbidden') return <ForbiddenState />;
+
+  const tabItems = [
+    {
+      value: 'groups',
+      label: 'קבוצות לימוד',
+      content: (
+        <Table
+          caption="קבוצות לימוד"
+          columns={[
+            ...GROUP_COLUMNS,
+            {
+              key: 'actions',
+              header: '',
+              cell: (row) => (
+                <Button variant="secondary" size="S" onClick={() => openMembers(row)}>
+                  שיוך תלמידים
+                </Button>
+              ),
+            },
+          ]}
+          rows={groupsData}
+          getRowId={(r) => r.id}
+        />
+      ),
+    },
+    {
+      value: 'classes',
+      label: 'כיתות',
+      content: (
+        <Table
+          caption="כיתות"
+          columns={CLASS_COLUMNS}
+          rows={classesData}
+          getRowId={(r) => r.id}
+        />
+      ),
+    },
+    { value: 'special', label: 'קבוצות ייעודיות', disabled: true },
+  ];
+
   return (
     <div className="flex flex-col gap-6 p-6" dir="rtl">
-      {/* כותרת המסך והפעולות */}
       <PageHeader
         title="כיתות וקבוצות לימוד"
         subtitle="רשימה, יצירה ושיוך תלמידים לכיתות ולקבוצות"
         actions={
-          <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+          <Button variant="primary" onClick={() => { setFormError(''); setIsModalOpen(true); }}>
             {activeTab === 'classes' ? 'הוספת כיתה' : 'הוספת קבוצה'}
           </Button>
         }
       />
 
-      {/* לשוניות ניווט (Tabs) */}
-      <div className="flex border-b border-border gap-6">
-        <button
-          onClick={() => setActiveTab('classes')}
-          className={`pb-3 font-medium transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'classes'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-fg-secondary hover:text-fg'
-          }`}
-        >
-          כיתות
-        </button>
-        <button
-          onClick={() => setActiveTab('groups')}
-          className={`pb-3 font-medium transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'groups'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-fg-secondary hover:text-fg'
-          }`}
-        >
-          קבוצות לימוד
-        </button>
-      </div>
+      <Tabs
+        label="ניווט בין כיתות וקבוצות"
+        items={tabItems}
+        value={activeTab}
+        onValueChange={handleTabChange}
+        syncUrl={true}
+      />
 
-      {/* טבלת הנתונים הראשית */}
-      <div className="rounded-xl bg-surface border border-border overflow-hidden shadow-sm">
-        {activeTab === 'classes' ? (
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="p-4 font-semibold text-fg">שם</th>
-                <th className="p-4 font-semibold text-fg">שכבה</th>
-                <th className="p-4 font-semibold text-fg">מחנך</th>
-                <th className="p-4 font-semibold text-fg">מספר תלמידים</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {classesData.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-fg-secondary">
-                    אין כיתות להצגה
-                  </td>
-                </tr>
-              ) : (
-                classesData.map((cls) => (
-                  <tr key={cls.id} className="hover:bg-surface-secondary/30 transition-colors">
-                    <td className="p-4 text-fg font-medium">{cls.name}</td>
-                    <td className="p-4 text-fg-secondary">{cls.grade}</td>
-                    <td className="p-4 text-fg-secondary">
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                          {cls.homeroom.charAt(0)}
-                        </span>
-                        <span>{cls.homeroom}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-fg-secondary">{cls.studentsCount}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="p-4 font-semibold text-fg">שם הקבוצה</th>
-                <th className="p-4 font-semibold text-fg">שייכות כיתתית</th>
-                <th className="p-4 font-semibold text-fg">מספר תלמידים</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {groupsData.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-fg-secondary">
-                    אין קבוצות לימוד להצגה
-                  </td>
-                </tr>
-              ) : (
-                groupsData.map((grp) => (
-                  <tr key={grp.id} className="hover:bg-surface-secondary/30 transition-colors">
-                    <td className="p-4 text-fg font-medium">{grp.name}</td>
-                    <td className="p-4 text-fg-secondary">{grp.classRef}</td>
-                    <td className="p-4 text-fg-secondary">{grp.studentsCount}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* מודל יצירת כיתה או קבוצה חדשה */}
+      {/* מודל יצירה */}
       <Modal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         title={activeTab === 'classes' ? 'יצירת כיתה חדשה' : 'יצירת קבוצת לימוד חדשה'}
-        description="הזן את פרטי המסגרת החדשה להוספה למערכת"
+        description="הזן את פרטי המסגרת החדשה"
         confirmLabel="שמור וצור"
         confirmLoading={isLoading}
         onConfirm={handleCreateNew}
       >
-        <div className="py-2 flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-fg">שם הכיתה / קבוצה</label>
-            <input
-              type="text"
-              className="px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder={activeTab === 'classes' ? "לדוגמה: ז'1" : "לדוגמה: הקבצה א'"}
-              value={frameName}
-              onChange={(e) => setFrameName(e.target.value)}
-            />
-          </div>
-
-          {activeTab === 'classes' && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-fg">שכבה</label>
-                <input
-                  type="text"
-                  className="px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="לדוגמה: ז'"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-fg">שם המחנך</label>
-                <input
-                  type="text"
-                  className="px-3 py-2 rounded-lg border border-border bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="לדוגמה: נועם גולדשטיין"
-                  value={homeroom}
-                  onChange={(e) => setHomeroom(e.target.value)}
-                />
-              </div>
-            </>
+        <div className="flex flex-col gap-4 py-2">
+          {formError && (
+            <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+              {formError}
+            </div>
           )}
+
+          <TextField
+            label={activeTab === 'classes' ? 'שם הכיתה' : 'שם הקבוצה'}
+            placeholder={activeTab === 'classes' ? "לדוגמה: ז'1" : "לדוגמה: הקבצה א' מתמטיקה"}
+            value={frameName}
+            onChange={(e) => setFrameName(e.target.value)}
+          />
+
+          {activeTab === 'classes' ? (
+            <>
+              <TextField
+                label="שכבה"
+                placeholder="לדוגמה: ז'"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+              />
+              <TextField
+                label="שם המחנך (מחנך אחד לכיתה)"
+                placeholder="לדוגמה: נועם גולדשטיין"
+                value={homeroom}
+                onChange={(e) => setHomeroom(e.target.value)}
+              />
+            </>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-fg">שייכות כיתתית</label>
+              <select
+                className="rounded-md border border-line bg-surface p-2 text-fg text-sm"
+                value={classRef}
+                onChange={(e) => setClassRef(e.target.value)}
+              >
+                <option value="חוצת-כיתה">חוצת-כיתה</option>
+                {classesData.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* מודל שיוך תלמידים */}
+      <Modal
+        open={isMembersModalOpen}
+        onOpenChange={setIsMembersModalOpen}
+        title={`שיוך תלמידים – ${selectedGroup?.name ?? ''}`}
+        description="הוסף או הסר תלמידים מהקבוצה"
+        confirmLabel="סגור"
+        footer="single"
+        onConfirm={() => setIsMembersModalOpen(false)}
+      >
+        <div className="flex flex-col gap-4 py-2">
+          <SearchField
+            label="הוספת תלמיד"
+            placeholder="חפש תלמיד להוספה"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            results={searchResults}
+            onResultSelect={addMember}
+          />
+          <ul className="flex flex-col divide-y divide-line">
+            {currentGroupMembers.length === 0 && (
+              <li className="py-4 text-center text-body text-fg-secondary">אין חברים בקבוצה</li>
+            )}
+            {currentGroupMembers.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 py-3">
+                <span className="flex items-center gap-2">
+                  <Avatar name={m.name} size="S" />
+                  <span className="text-body text-fg">{m.name}</span>
+                  <Badge tone="neutral">{m.className}</Badge>
+                </span>
+                <Button variant="secondary" size="S" onClick={() => removeMember(m.id)}>
+                  הסרה
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
       </Modal>
     </div>

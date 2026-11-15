@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Button, Modal, Select, Alert } from '../../components/ui';
+import { Alert, Button, Modal, PageHeader, Select } from '../../components/ui';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
+
+type ScreenState = 'loading' | 'error' | 'forbidden' | 'ok';
 
 export default function Screen() {
+  const [screenState] = useState<ScreenState>('ok');
   const [selectedCount] = useState<number>(3);
   const [activeModal, setActiveModal] = useState<'class' | 'tag' | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<string>('');
@@ -24,32 +28,32 @@ export default function Screen() {
       await new Promise((resolve) => setTimeout(resolve, 600));
       setResultSummary({ success: selectedCount, failed: 0 });
       setActiveModal(null);
-    } catch (error) {
-      console.error('Bulk action failed', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  if (screenState === 'loading') return <LoadingSkeleton />;
+  if (screenState === 'error')
+    return <ErrorState message="אירעה שגיאה בטעינת הנתונים" onRetry={() => {}} />;
+  if (screenState === 'forbidden') return <ForbiddenState />;
+
   return (
     <div className="flex flex-col gap-6 p-6" dir="rtl">
-      {/* כותרת המסך והניווט */}
-      <div className="flex flex-col gap-1">
-        <div className="text-xs text-fg-secondary">תלמידים &gt; פעולות קבוצתיות</div>
-        <h1 className="text-h1 text-fg font-bold">פעולות קבוצתיות</h1>
-      </div>
+      <PageHeader
+        title="פעולות קבוצתיות"
+        subtitle="תלמידים › פעולות קבוצתיות"
+      />
 
-      {/* סרגל בחירה ופעולות תואם פיגמה */}
-      <div className="flex flex-col gap-4 rounded-xl bg-surface p-6 shadow-sm border border-border">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4">
+      <div className="rounded-lg border border-line bg-surface p-6 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <span className="font-semibold text-fg text-lg">נבחרו {selectedCount} תלמידים</span>
-            <button className="text-sm text-primary hover:underline text-start cursor-pointer">
+            <span className="text-body-strong text-fg">נבחרו {selectedCount} תלמידים</span>
+            <button className="text-start text-body text-primary-600 hover:underline">
               בחירת כל התוצאות המסוננות
             </button>
           </div>
-          
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="primary" onClick={() => setActiveModal('class')}>
               שיוך לכיתה / קבוצה
             </Button>
@@ -63,7 +67,6 @@ export default function Screen() {
         </div>
       </div>
 
-      {/* הצגת סיכום תוצאות באמצעות רכיב Alert האמיתי */}
       {resultSummary && (
         <Alert
           tone="success"
@@ -75,7 +78,6 @@ export default function Screen() {
         </Alert>
       )}
 
-      {/* מודל שיוך לכיתה / קבוצה */}
       <Modal
         open={activeModal === 'class'}
         onOpenChange={(open) => !open && setActiveModal(null)}
@@ -96,7 +98,6 @@ export default function Screen() {
         </div>
       </Modal>
 
-      {/* מודל הוספת תגית */}
       <Modal
         open={activeModal === 'tag'}
         onOpenChange={(open) => !open && setActiveModal(null)}
