@@ -3,6 +3,7 @@ import type { Announcement } from '../api/types';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
+import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
 
 /**
@@ -14,6 +15,7 @@ import { sharedHandlers } from './shared/handlers';
  * PATCH, DELETE) of your own screen, and change the data in ./shared so the GET handlers see it.
  */
 export const handlers = [
+  ...joinInviteHandlers,
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     const user = USERS[email.trim().toLowerCase()];
