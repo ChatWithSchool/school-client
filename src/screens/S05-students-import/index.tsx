@@ -12,60 +12,60 @@ export default function Screen() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       {/* כותרת ראשית */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+      <div className="flex items-center gap-2 text-body text-fg-muted">
         <span>תלמידים</span>
         <span>/</span>
-        <span className="text-gray-900 font-medium">ייבוא תלמידים מקובץ</span>
+        <span className="text-fg font-medium">ייבוא תלמידים מקובץ</span>
       </div>
       
-      <h1 className="text-2xl font-bold text-gray-900">ייבוא תלמידים מקובץ</h1>
+      <h1 className="text-h1 text-fg">ייבוא תלמידים מקובץ</h1>
 
       {/* שלבי התהליך (Steppers) */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
+      <div className="bg-surface p-6 rounded-lg border border-line">
         <div className="flex items-center justify-between max-w-2xl mx-auto mb-8">
           <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium text-sm">1</div>
-            <span className="text-xs mt-1 text-blue-600 font-medium">תבנית</span>
+            <div className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center font-medium text-sm">1</div>
+            <span className="text-caption mt-1 text-primary-600 font-medium">תבנית</span>
           </div>
-          <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
+          <div className="flex-1 h-0.5 bg-line mx-4"></div>
           <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-medium text-sm">2</div>
-            <span className="text-xs mt-1 text-gray-500">העלאה</span>
+            <div className="w-8 h-8 rounded-full bg-subtle text-fg-secondary flex items-center justify-center font-medium text-sm">2</div>
+            <span className="text-caption mt-1 text-fg-muted">העלאה</span>
           </div>
-          <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
+          <div className="flex-1 h-0.5 bg-line mx-4"></div>
           <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-medium text-sm">3</div>
-            <span className="text-xs mt-1 text-gray-500">בדיקה</span>
+            <div className="w-8 h-8 rounded-full bg-subtle text-fg-secondary flex items-center justify-center font-medium text-sm">3</div>
+            <span className="text-caption mt-1 text-fg-muted">בדיקה</span>
           </div>
-          <div className="flex-1 h-0.5 bg-gray-200 mx-4"></div>
+          <div className="flex-1 h-0.5 bg-line mx-4"></div>
           <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-medium text-sm">4</div>
-            <span className="text-xs mt-1 text-gray-500">אישור</span>
+            <div className="w-8 h-8 rounded-full bg-subtle text-fg-secondary flex items-center justify-center font-medium text-sm">4</div>
+            <span className="text-caption mt-1 text-fg-muted">אישור</span>
           </div>
         </div>
 
         {/* אזור הורדת תבנית */}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50 hover:bg-gray-100 transition cursor-pointer">
+        <div className="border-2 border-dashed border-line rounded-lg p-8 text-center bg-page hover:bg-subtle transition cursor-pointer">
           <div className="flex flex-col items-center">
-            <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-10 h-10 text-fg-muted mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            <span className="text-sm font-medium text-gray-700">גרירת קובץ</span>
-            <span className="text-xs text-gray-500 mt-1">Excel / CSV</span>
-            <span className="text-xs text-blue-600 mt-3 font-medium underline">הורדת תבנית</span>
+            <span className="text-body-strong text-fg-secondary">גרירת קובץ</span>
+            <span className="text-caption text-fg-muted mt-1">Excel / CSV</span>
+            <span className="text-caption text-primary-600 mt-3 font-medium underline">הורדת תבנית</span>
           </div>
         </div>
       </div>
 
       {/* טבלת בדיקה */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 font-semibold text-gray-800">
+      <div className="bg-surface rounded-lg border border-line overflow-hidden">
+        <div className="p-4 border-b border-line font-semibold text-fg">
           בדיקה
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse">
+          <table className="w-full text-start border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase">
+              <tr className="bg-page border-b border-line text-caption text-fg-muted uppercase">
                 <th className="py-3 px-4">שורה</th>
                 <th className="py-3 px-4">שם</th>
                 <th className="py-3 px-4">כיתה</th>
@@ -75,30 +75,31 @@ export default function Screen() {
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
               {rows.map((item) => (
-                <tr key={item.row} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-600">{item.row}</td>
+                <tr key={item.row} className="hover:bg-page">
+                  <td className="py-3 px-4 text-fg-secondary">{item.row}</td>
                   <td className="py-3 px-4 flex items-center gap-3">
                     {item.avatar ? (
-                      <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold">
+                      <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-caption font-semibold">
                         {item.avatar}
                       </span>
                     ) : (
-                      <span className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs">
+                      <span className="w-7 h-7 rounded-full bg-subtle text-fg-secondary flex items-center justify-center text-caption">
                         ?
                       </span>
                     )}
-                    <span className="font-medium text-gray-900">{item.name}</span>
+                    <span className="font-medium text-fg">{item.name}</span>
                   </td>
-                  <td className="py-3 px-4 text-gray-700">{item.className}</td>
+                  <td className="py-3 px-4 text-fg-secondary">{item.className}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-px px-2.5 py-1 text-xs font-medium rounded-full ${
-                      item.statusType === 'success' ? 'bg-green-100 text-green-700' :
-                      item.statusType === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                    <span className={`inline-block px-2.5 py-1 text-caption font-medium rounded-full ${
+                      item.statusType === 'success' ? 'bg-success-50 text-success-700' :
+                      item.statusType === 'error' ? 'bg-danger-50 text-danger-700' :
+                      item.statusType === 'warning' ? 'bg-warning-50 text-warning-700' : 'bg-info-50 text-info-700'
                     }`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-gray-500">{item.error}</td>
+                  <td className="py-3 px-4 text-fg-muted">{item.error}</td>
                 </tr>
               ))}
             </tbody>
@@ -108,13 +109,13 @@ export default function Screen() {
 
       {/* כפתורי פעולה בתחתית */}
       <div className="flex items-center justify-end gap-3">
-        <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+        <button className="px-4 py-2 border border-line rounded-lg text-body font-medium text-fg-secondary hover:bg-page">
           ביטול
         </button>
-        <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+        <button className="px-4 py-2 border border-line rounded-lg text-body font-medium text-fg-secondary hover:bg-page">
           הורד דוח שגיאות
         </button>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+        <button className="px-4 py-2 bg-primary-600 text-white rounded-lg text-body font-medium hover:bg-primary-700">
           ייבא תקינות
         </button>
       </div>
