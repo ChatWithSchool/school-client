@@ -144,7 +144,7 @@ export default function Screen() {
     setFormError('');
     if (!frameName.trim()) {
       setFormError('נא להזין שם');
-      return;
+      return false;
     }
 
     setIsLoading(true);
@@ -162,12 +162,12 @@ export default function Screen() {
         if (existingClass) {
           setFormError(`הכיתה "${frameName}" כבר קיימת במערכת.`);
           setIsLoading(false);
-          return;
+          return false;
         }
         if (existingHomeroom) {
           setFormError(`המחנך "${homeroom}" כבר משויך לכיתה אחרת (${existingHomeroom.name}). מחנך יכול להיות משויך לכיתה אחת בלבד.`);
           setIsLoading(false);
-          return;
+          return false;
         }
 
         setClassesData((prev) => [
