@@ -1,105 +1,246 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Alert, Button, PageHeader, Select } from '../../components/ui';
+import { ErrorState, LoadingSkeleton } from '../../components/StateViews';
+import { CLASSES, SUBJECTS, shared } from '../../mocks/shared';
 
-export default function G07Transcripts(): React.ReactElement {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('הכול');
-  const [selectedClass, setSelectedClass] = useState<string>('הכול');
+const TERMS = [
+  { value: 'א', label: "מחצית א'" },
+  { value: 'ב', label: "מחצית ב'" },
+];
 
+type SubjectRow = {
+  subjectId: string;
+  subjectName: string;
+  finalGrade: number | null;
+  missingCount: number;
+};
+
+type TranscriptData = {
+  studentId: string;
+  studentName: string;
+  className: string;
+  term: string;
+  subjects: SubjectRow[];
+  missingGrades: { subjectName: string; missingCount: number }[];
+};
+
+function getTranscript(studentId: string, term: string): TranscriptData {
+  const { students, teachingAssignments, assessments, grades } = shared;
+  const student = students.find((s) => s.id === studentId);
+  if (!student) throw new Error('תלמיד לא נמצא');
+  const cls = CLASSES.find((c) => c.id === student.classId);
+
+  const subjectRows: SubjectRow[] = teachingAssignments
+    .filter((a) => a.classId === student.classId)
+    .map((a) => {
+      const subject = SUBJECTS.find((s) => s.id === a.subjectId);
+      const asmList = assessments.filter(
+        (asm) => asm.subjectId === a.subjectId && asm.classId === student.classId,
+      );
+      const gradeList = asmList.flatMap((asm) =>
+        grades.filter((g) => g.assessmentId === asm.id && g.studentId === student.id),
+      );
+      const entered = gradeList.filter((g) => g.score !== null);
+      const avg =
+        entered.length > 0
+          ? Math.round(entered.reduce((s, g) => s + (g.score ?? 0), 0) / entered.length)
+          : null;
+      return {
+        subjectId: a.subjectId,
+        subjectName: subject?.name ?? a.subjectId,
+        finalGrade: avg,
+        missingCount: gradeList.length - entered.length,
+      };
+    });
+
+  return {
+    studentId: student.id,
+    studentName: `${student.firstName} ${student.lastName}`,
+    className: cls?.name ?? '',
+    term,
+    subjects: subjectRows,
+    missingGrades: subjectRows
+      .filter((r) => r.missingCount > 0)
+      .map((r) => ({ subjectName: r.subjectName, missingCount: r.missingCount })),
+  };
+}
+
+function TranscriptPreview({ data }: { data: TranscriptData }) {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-h1 text-fg">הפקת תעודות</h1>
-
-      <div className="flex gap-4">
-        <div className="flex w-52 flex-col gap-1">
-          <label className="text-label text-fg-secondary">מחצית</label>
-          <div className="relative">
-            <select
-              value={selectedPeriod}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedPeriod(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-line bg-surface px-3 py-2.5 ps-8 text-body text-fg focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="הכול">הכול</option>
-              <option value="מחצית א">מחצית א'</option>
-              <option value="מחצית ב">מחצית ב'</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute end-3 top-3.5 h-4 w-4 text-fg-secondary" />
-          </div>
-        </div>
-
-        <div className="flex w-52 flex-col gap-1">
-          <label className="text-label text-fg-secondary">כיתה או תלמיד</label>
-          <div className="relative">
-            <select
-              value={selectedClass}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedClass(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-line bg-surface px-3 py-2.5 ps-8 text-body text-fg focus:outline-none focus:ring-1 focus:ring-primary-500"
-            >
-              <option value="הכול">הכול</option>
-              <option value="ז1">ז'1</option>
-              <option value="ז2">ז'2</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute end-3 top-3.5 h-4 w-4 text-fg-secondary" />
-          </div>
-        </div>
+    <div className="transcript-preview mx-auto w-full max-w-2xl rounded-xl border border-line bg-surface p-8 shadow-sm print:border-none print:shadow-none">
+      <div className="mb-6 text-center">
+        <h2 className="text-h2 text-fg">בית ספר לדוגמה</h2>
+        <p className="text-body text-fg-secondary">תעודת הישגים</p>
       </div>
 
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-body-strong text-fg">תצוגה מקדימה</h2>
-        </div>
-
-        <div className="mx-auto flex w-full flex-col gap-4 rounded-xl border border-line bg-surface p-6 shadow-sm">
-          <div className="flex flex-col gap-2">
-            <span className="text-label text-fg-secondary">כותרת מוסד</span>
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-            <div className="h-2.5 w-4/5 rounded-full bg-subtle" />
-          </div>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <span className="text-label text-fg-secondary">פרטי תלמיד</span>
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-          </div>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <span className="text-label text-fg-secondary">טבלת מקצועות וציונים</span>
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-            <div className="h-2.5 w-3/4 rounded-full bg-subtle" />
-          </div>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <span className="text-label text-fg-secondary">הערת מחנך</span>
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-          </div>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <span className="text-label text-fg-secondary">חתימות</span>
-            <div className="h-2.5 w-full rounded-full bg-subtle" />
-          </div>
-        </div>
+      <div className="mb-6 flex justify-between text-body text-fg">
+        <span>
+          <strong>שם תלמיד/ה:</strong> {data.studentName}
+        </span>
+        <span>
+          <strong>כיתה:</strong> {data.className}
+        </span>
+        <span>
+          <strong>מחצית:</strong> {data.term === 'א' ? "א'" : "ב'"}
+        </span>
       </div>
 
-      <div className="rounded-xl border border-primary-100 bg-primary-50 p-4 text-label text-primary-700">
-        <div className="font-bold">ציונים חסרים</div>
-        <div>משקלים שלא מסתכמים</div>
-      </div>
+      <table className="w-full border-collapse text-body text-fg">
+        <thead>
+          <tr className="border-b border-line bg-subtle">
+            <th className="py-2 pe-4 text-start text-label font-semibold">מקצוע</th>
+            <th className="py-2 text-center text-label font-semibold">ציון</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.subjects.map((row) => (
+            <tr key={row.subjectId} className="border-b border-line last:border-0">
+              <td className="py-2 pe-4">{row.subjectName}</td>
+              <td className="py-2 text-center">
+                {row.finalGrade !== null ? row.finalGrade : <span className="text-fg-muted">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-primary-50 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button className="rounded-lg border border-primary-600 bg-primary-600 px-4 py-2 text-body-strong text-white transition hover:bg-primary-700">
-            הפק PDF לתלמיד
-          </button>
-          <button className="rounded-lg border border-line bg-surface px-4 py-2 text-body-strong text-fg transition hover:bg-subtle">
-            הפק לכל הכיתה (קובץ מאוחד)
-          </button>
+      <div className="mt-8 flex justify-between text-body text-fg">
+        <div className="flex flex-col gap-2">
+          <span className="text-label text-fg-secondary">הערת מחנך/ת</span>
+          <div className="h-px w-48 bg-line" />
         </div>
-
-        <div className="flex items-center gap-2 rounded-lg bg-primary-100 px-3 py-2 text-label text-primary-700">
-          <span>ציונים</span>
-          <span className="font-bold">לא סגורים</span>
+        <div className="flex flex-col gap-2">
+          <span className="text-label text-fg-secondary">חתימת מנהל/ת</span>
+          <div className="h-px w-48 bg-line" />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function G07Transcripts() {
+  const [term, setTerm] = useState('א');
+  const [selection, setSelection] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [transcripts, setTranscripts] = useState<TranscriptData[]>([]);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const classOptions = CLASSES.map((c) => ({ value: `class:${c.id}`, label: `כיתה ${c.name}` }));
+  const studentOptions = shared.students.map((s) => ({
+    value: `student:${s.id}`,
+    label: `${s.firstName} ${s.lastName}`,
+  }));
+
+  useEffect(() => {
+    if (!selection) {
+      setTranscripts([]);
+      return;
+    }
+    setStatus('loading');
+    const timer = setTimeout(() => {
+      try {
+        if (selection.startsWith('student:')) {
+          const studentId = selection.replace('student:', '');
+          setTranscripts([getTranscript(studentId, term)]);
+        } else {
+          const classId = selection.replace('class:', '');
+          const students = shared.students.filter((s) => s.classId === classId);
+          setTranscripts(students.map((s) => getTranscript(s.id, term)));
+        }
+        setStatus('idle');
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : 'שגיאה בטעינת הנתונים');
+        setStatus('error');
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [selection, term]);
+
+  const allMissing = transcripts.flatMap((t) =>
+    t.missingGrades.map((m) => ({ ...m, studentName: t.studentName })),
+  );
+  const canPrint = transcripts.length > 0 && allMissing.length === 0;
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .transcript-preview { page-break-after: always; }
+        }
+      `}</style>
+
+      <div className="flex flex-col gap-6">
+        <PageHeader title="הפקת תעודות" className="no-print" />
+
+        <div className="no-print flex flex-wrap gap-4">
+          <Select
+            label="מחצית"
+            options={TERMS}
+            value={term}
+            onValueChange={setTerm}
+            className="w-48"
+          />
+          <Select
+            label="כיתה או תלמיד"
+            options={[...classOptions, ...studentOptions]}
+            value={selection}
+            onValueChange={setSelection}
+            placeholder="בחרו כיתה או תלמיד"
+            className="w-64"
+          />
+        </div>
+
+        {status === 'loading' && <LoadingSkeleton rows={6} />}
+
+        {status === 'error' && (
+          <ErrorState
+            message={errorMsg}
+            onRetry={() => {
+              setStatus('idle');
+              setSelection('');
+            }}
+          />
+        )}
+
+        {status === 'idle' && !selection && (
+          <p className="text-body text-fg-secondary">
+            בחרו מחצית וכיתה או תלמיד כדי לראות תצוגה מקדימה.
+          </p>
+        )}
+
+        {status === 'idle' && transcripts.length > 0 && (
+          <>
+            {allMissing.length > 0 && (
+              <Alert tone="warning" title="בדיקות לפני הפקה – ציונים חסרים" className="no-print">
+                <ul className="mt-1 list-disc ps-4 text-body">
+                  {allMissing.map((m, i) => (
+                    <li key={i}>
+                      {transcripts.length > 1 && <strong>{m.studentName}: </strong>}
+                      {m.subjectName} – {m.missingCount} ציון{m.missingCount > 1 ? 'ות' : ''} חסר
+                      {m.missingCount > 1 ? 'ות' : ''}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+
+            {transcripts.map((t) => (
+              <TranscriptPreview key={t.studentId} data={t} />
+            ))}
+
+            <div className="no-print flex gap-3">
+              <Button
+                onClick={() => window.print()}
+                disabled={!canPrint}
+                title={!canPrint ? 'לא ניתן להפיק תעודה עם ציונים חסרים' : undefined}
+              >
+                {transcripts.length > 1 ? 'הדפס תעודות לכיתה' : 'הדפס תעודה'}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
