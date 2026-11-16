@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Button,
   GradeCell,
   MetricCard,
   PageHeader,
+  Select,
   Table,
   type TableColumn,
 } from '../../components/ui';
@@ -33,6 +33,9 @@ function formatAverage(value: number) {
 
 export default function Screen() {
   const [rows, setRows] = useState<GradeRow[]>(INITIAL_ROWS);
+  const [classId, setClassId] = useState('cls-h1');
+  const [subjectId, setSubjectId] = useState('sub-math');
+  const [assessmentId, setAssessmentId] = useState('asm-1');
   const gradeRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const average = useMemo(() => {
@@ -173,17 +176,50 @@ export default function Screen() {
 
   const hasError = rows.some((row) => row.error);
 
+  // suppress unused-variable warnings for the selection state (used for future API calls)
+  void classId; void subjectId; void assessmentId;
+
   return (
     <div className="space-y-4 p-4" dir="rtl">
       <PageHeader
         title="הזנת ציונים ומשוב"
         subtitle="כיתה ח1 · מתמטיקה · מבחן בשברים"
-        actions={
-          <Button variant="secondary" size="M">
-            ייצוא CSV
-          </Button>
-        }
       />
+
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-subtle p-3">
+        <Select
+          label="כיתה"
+          value={classId}
+          onValueChange={setClassId}
+          options={[
+            { value: 'cls-h1', label: 'ח1' },
+            { value: 'cls-h2', label: 'ח2' },
+            { value: 'cls-z1', label: 'ז1' },
+          ]}
+          className="w-32"
+        />
+        <Select
+          label="מקצוע"
+          value={subjectId}
+          onValueChange={setSubjectId}
+          options={[
+            { value: 'sub-math', label: 'מתמטיקה' },
+            { value: 'sub-eng', label: 'אנגלית' },
+            { value: 'sub-heb', label: 'עברית' },
+          ]}
+          className="w-36"
+        />
+        <Select
+          label="מבחן"
+          value={assessmentId}
+          onValueChange={setAssessmentId}
+          options={[
+            { value: 'asm-1', label: 'מבחן בשברים' },
+            { value: 'asm-2', label: 'בוחן אוצר מילים' },
+          ]}
+          className="w-48"
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard
@@ -206,18 +242,6 @@ export default function Screen() {
           trendText="השלמה מתעדכנת"
           className="min-h-28"
         />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-subtle p-3">
-        <div className="rounded-md border border-line bg-surface px-3 py-2 text-body text-fg-secondary">
-          מבחן
-        </div>
-        <div className="rounded-md border border-line bg-surface px-3 py-2 text-body text-fg-secondary">
-          כיתה
-        </div>
-        <div className="rounded-md border border-line bg-surface px-3 py-2 text-body text-fg-secondary">
-          מועד
-        </div>
       </div>
 
       <section className="rounded-xl border border-line bg-surface p-3 shadow-xs">
