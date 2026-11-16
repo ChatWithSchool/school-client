@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { errorMessage } from '../../api/errors';
-import { useGetMyTeachingQuery, type TeachingCard } from '../../api/teachingApi';
+import { TERMS, termOf, useGetMyTeachingQuery, type TeachingCard } from '../../api/teachingApi';
 import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
-import { Button, EmptyState, MetricCard, PageHeader } from '../../components/ui';
+import { Button, EmptyState, MetricCard, PageHeader, Select } from '../../components/ui';
 import { canWrite, usePermission } from '../../features/auth/usePermission';
 import { pathFor } from '../../routes/screens';
 
@@ -12,13 +13,28 @@ const NO_TREND = ' ';
 /** G08 · My subjects: one block per class and subject the teacher teaches, with shortcuts. */
 export default function MySubjects() {
   const level = usePermission('G08');
-  const { data, isLoading, isError, error, refetch } = useGetMyTeachingQuery();
+  // the current term first; the counts on the cards are of the chosen term
+  const [termId, setTermId] = useState(() => termOf(new Date()));
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetMyTeachingQuery({
+    termId,
+  });
 
   if ((error as { status?: number } | undefined)?.status === 403) return <ForbiddenState />;
 
   return (
-    <div className="space-y-8">
-      <PageHeader title="המקצועות שלי (מורה)" />
+    <div className="space-y-8" aria-busy={isFetching || undefined}>
+      <PageHeader
+        title="המקצועות שלי (מורה)"
+        actions={
+          <Select
+            label="מחצית"
+            className="w-40"
+            options={TERMS.map((t) => ({ value: t.id, label: t.name }))}
+            value={termId}
+            onValueChange={setTermId}
+          />
+        }
+      />
 
       {isLoading && <LoadingSkeleton />}
       {isError && <ErrorState message={errorMessage(error)} onRetry={refetch} />}

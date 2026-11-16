@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { shared } from '../../mocks/shared';
@@ -24,6 +24,13 @@ function setup(token: string) {
 }
 
 describe('G08 my subjects', () => {
+  // the term selector starts on the current term: November is the first term
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-01T09:00:00'));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it('shows one block for each class and subject of the teacher', async () => {
     setup(TEACHER);
     const h1 = await screen.findByRole('region', { name: 'ח1 · אנגלית' });
@@ -31,6 +38,19 @@ describe('G08 my subjects', () => {
     expect(within(h1).getByText('תלמידים ללא ציון').nextSibling).toHaveTextContent('2');
     expect(screen.getByRole('region', { name: 'ז1 · אנגלית' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'ז2 · אנגלית' })).toBeInTheDocument();
+  });
+
+  it('counts the assessments of the chosen term', async () => {
+    setup(TEACHER);
+    const term = await screen.findByRole('combobox', { name: 'מחצית' });
+    expect(term).toHaveTextContent('מחצית א׳');
+    await screen.findByRole('region', { name: 'ח1 · אנגלית' });
+    await userEvent.click(term);
+    await userEvent.click(await screen.findByRole('option', { name: 'מחצית ב׳' }));
+    await waitFor(() => {
+      const h1 = screen.getByRole('region', { name: 'ח1 · אנגלית' });
+      expect(within(h1).getByText('מבחנים פתוחים').nextSibling).toHaveTextContent('0');
+    });
   });
 
   it('keeps the class and subject when a shortcut is used', async () => {
