@@ -122,7 +122,7 @@ export default function Screen() {
   const [frameName, setFrameName] = useState('');
   const [grade, setGrade] = useState('');
   const [homeroom, setHomeroom] = useState('');
-  const [classRef, setClassRef] = useState('חוצת-כיתה');
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [formError, setFormError] = useState('');
 
   const [classesData, setClassesData] = useState<ClassItem[]>(MOCK_CLASSES);
@@ -181,12 +181,14 @@ export default function Screen() {
           },
         ]);
       } else {
+        const classRef =
+          selectedClasses.length > 0 ? selectedClasses.join(', ') : 'חוצת-כיתה';
         setGroupsData((prev) => [
           ...prev,
           { 
             id: String(Date.now()), 
             name: frameName.trim(), 
-            classRef: classRef.trim() || 'חוצת-כיתה', 
+            classRef,
             studentsCount: 0, 
             members: [] 
           },
@@ -197,7 +199,7 @@ export default function Screen() {
       setFrameName('');
       setGrade('');
       setHomeroom('');
-      setClassRef('חוצת-כיתה');
+      setSelectedClasses([]);
     } finally {
       setIsLoading(false);
     }
@@ -249,6 +251,12 @@ export default function Screen() {
         }
         return g;
       }),
+    );
+  };
+
+  const toggleClassSelection = (className: string) => {
+    setSelectedClasses((prev) =>
+      prev.includes(className) ? prev.filter((name) => name !== className) : [...prev, className],
     );
   };
 
@@ -356,20 +364,33 @@ export default function Screen() {
               />
             </>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-fg">שייכות כיתתית</label>
-              <select
-                className="rounded-md border border-line bg-surface p-2 text-fg text-sm"
-                value={classRef}
-                onChange={(e) => setClassRef(e.target.value)}
-              >
-                <option value="חוצת-כיתה">חוצת-כיתה</option>
-                {classesData.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-fg">
+                שייכות כיתתית (אפשר לבחור כמה כיתות)
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {classesData.map((classItem) => {
+                  const isSelected = selectedClasses.includes(classItem.name);
+                  return (
+                    <button
+                      key={classItem.id}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => toggleClassSelection(classItem.name)}
+                      className={`rounded-md border px-3 py-1.5 text-body transition-colors ${
+                        isSelected
+                          ? 'border-primary-600 bg-primary-600 text-white'
+                          : 'border-line bg-surface text-fg hover:border-line-strong'
+                      }`}
+                    >
+                      {classItem.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-sm text-fg-secondary">
+                ללא בחירה, הקבוצה תוגדר כחוצת-כיתה.
+              </span>
             </div>
           )}
         </div>

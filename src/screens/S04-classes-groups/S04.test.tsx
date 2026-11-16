@@ -59,6 +59,32 @@ describe('S04 classes and groups screen', () => {
     ).toBeInTheDocument();
   });
 
+  it('creates a group associated with multiple selected classes', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.click(screen.getByRole('button', { name: 'הוספת קבוצה' }));
+    const dialog = screen.getByRole('dialog', { name: 'יצירת קבוצת לימוד חדשה' });
+    await user.type(within(dialog).getByRole('textbox', { name: 'שם הקבוצה' }), 'קבוצת אנגלית');
+    await user.click(within(dialog).getByRole('button', { name: 'ז1' }));
+    await user.click(within(dialog).getByRole('button', { name: 'ז2' }));
+    expect(within(dialog).getByRole('button', { name: 'ז1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(within(dialog).getByRole('button', { name: 'ז2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(within(dialog).getByRole('button', { name: 'שמור וצור' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    const groupsTable = screen.getByRole('table', { name: 'קבוצות לימוד' });
+    expect(within(groupsTable).getByText('קבוצת אנגלית')).toBeInTheDocument();
+    expect(within(groupsTable).getByText('ז1, ז2')).toBeInTheDocument();
+  });
+
   it('adds and removes a student and updates the group count', async () => {
     const user = userEvent.setup();
     renderScreen();
