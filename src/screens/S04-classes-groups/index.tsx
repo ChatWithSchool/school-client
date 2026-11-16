@@ -75,7 +75,7 @@ const CLASS_COLUMNS: TableColumn<ClassItem>[] = [
   {
     key: 'studentsCount',
     header: 'מספר תלמידים',
-    cell: (row) => <Badge tone="neutral" label={String(row.studentsCount)} />,
+    cell: (row) => <Badge tone="neutral">{String(row.studentsCount)}</Badge>,
     numeric: true,
   },
 ];
@@ -90,7 +90,7 @@ const GROUP_COLUMNS: TableColumn<GroupItem>[] = [
   {
     key: 'studentsCount',
     header: 'מספר תלמידים',
-    cell: (row) => <Badge tone="neutral" label={String(row.studentsCount)} />,
+    cell: (row) => <Badge tone="neutral">{String(row.studentsCount)}</Badge>,
     numeric: true,
   },
 ];
@@ -307,7 +307,7 @@ export default function Screen() {
                 <span className="flex items-center gap-2">
                   <Avatar name={m.name} size="S" />
                   <span className="text-body text-fg">{m.name}</span>
-                  <Badge tone="neutral" label={m.className} />
+                  <Badge tone="neutral">{m.className}</Badge>
                 </span>
                 <Button variant="secondary" size="S" onClick={() => removeMember(m.id)}>
                   הסרה
