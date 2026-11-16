@@ -1,3 +1,5 @@
+import { http, HttpResponse } from 'msw';
+import { server } from '../../mocks/server';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/utils';
@@ -25,5 +27,22 @@ describe('I03 institution settings screen', () => {
   it('shows "no permission" to the secretary', async () => {
     renderWithProviders(<Screen />, { token: SECRETARY });
     expect(await screen.findByText('אין לך הרשאה לצפות בעמוד זה')).toBeInTheDocument();
+  });
+
+  it('shows loading skeleton before data arrives', async () => {
+    renderWithProviders(<Screen />, { token: MANAGER });
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue(/בית ספר/)).toBeInTheDocument();
+  });
+
+  it('shows error state and retry button when server fails', async () => {
+    server.use(
+      http.get('*/api/institutions/:id', () =>
+        HttpResponse.json({ message: 'server error' }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<Screen />, { token: MANAGER });
+    expect(await screen.findByText(/לא הצלחנו לטעון/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'נסי שוב' })).toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { ForbiddenState } from '../../components/StateViews';
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
 import {
   Alert,
   Badge,
@@ -13,25 +13,39 @@ import {
   useToast,
   type TableColumn,
 } from '../../components/ui';
+import {
+  useGetInstitutionQuery,
+  useListTermsQuery,
+  type InstitutionDto,
+  type TermDto,
+} from '../../api/institutionApi';
 import { canWrite, usePermission } from '../../features/auth/usePermission';
 
-// Sprint 1: mock data kept in the screen. The API (GET/PUT /institutions/{id}, POST /terms)
-// is connected in sprint 4.
+// The details and the terms load from the API (GET /institutions/{id}, GET /terms).
+// Saving the details and adding a term stay local until sprint 4.
 type Institution = { name: string; address: string; phone: string; email: string };
 type Term = { id: string; name: string; start: Date; end: Date };
 type TermErrors = { name?: string; start?: string; end?: string };
 
-const INITIAL_INSTITUTION: Institution = {
-  name: 'בית ספר לדוגמה',
-  address: 'רחוב הדוגמה 1, תל אביב',
-  phone: '03-1234567',
-  email: 'office@school.example',
-};
+// TODO: take the institution id from the signed-in user once the server returns it.
+const INSTITUTION_ID = 'inst-1';
 
-const INITIAL_TERMS: Term[] = [
-  { id: 't1', name: "מחצית א'", start: new Date(2026, 8, 1), end: new Date(2027, 0, 31) },
-  { id: 't2', name: "מחצית ב'", start: new Date(2027, 1, 1), end: new Date(2027, 5, 30) },
-];
+const parseDate = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+const toTerm = (t: TermDto): Term => ({
+  id: t.id,
+  name: t.name,
+  start: parseDate(t.startDate),
+  end: parseDate(t.endDate),
+});
+const toInstitution = (i: InstitutionDto): Institution => ({
+  name: i.name,
+  address: i.address ?? '',
+  phone: i.phone ?? '',
+  email: i.contactEmail ?? '',
+});
 
 const fmt = (d: Date) => d.toLocaleDateString('he-IL');
 const overlaps = (a: Term, b: Term) => a.start <= b.end && b.start <= a.end;
@@ -50,25 +64,29 @@ const columns: TableColumn<Term>[] = [
   { key: 'status', header: 'סטטוס', cell: (t) => <TermStatus term={t} /> },
 ];
 
-export default function Screen() {
-  const level = usePermission('I03');
+function InstitutionSettings({
+  initialInstitution,
+  initialTerms,
+  editable,
+}: {
+  initialInstitution: Institution;
+  initialTerms: Term[];
+  editable: boolean;
+}) {
   const toast = useToast();
-  const editable = canWrite(level);
 
   // details tab
-  const [saved, setSaved] = useState<Institution>(INITIAL_INSTITUTION);
-  const [form, setForm] = useState<Institution>(INITIAL_INSTITUTION);
+  const [saved, setSaved] = useState<Institution>(initialInstitution);
+  const [form, setForm] = useState<Institution>(initialInstitution);
   const [nameError, setNameError] = useState<string>();
 
   // terms tab
-  const [terms, setTerms] = useState<Term[]>(INITIAL_TERMS);
+  const [terms, setTerms] = useState<Term[]>(initialTerms);
   const [newName, setNewName] = useState('');
   const [newStart, setNewStart] = useState<Date | null>(null);
   const [newEnd, setNewEnd] = useState<Date | null>(null);
   const [termErrors, setTermErrors] = useState<TermErrors>({});
   const [overlapMessage, setOverlapMessage] = useState<string>();
-
-  if (!level) return <ForbiddenState />;
 
   const setField = (key: keyof Institution) => (e: ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [key]: e.target.value });
@@ -210,15 +228,52 @@ export default function Screen() {
   );
 
   return (
+    <Tabs
+      label="הגדרות המוסד"
+      items={[
+        { value: 'details', label: 'פרטים', content: detailsTab },
+        { value: 'terms', label: 'מחזורי הערכה', content: termsTab },
+      ]}
+    />
+  );
+}
+
+export default function Screen() {
+  const level = usePermission('I03');
+  const institutionQuery = useGetInstitutionQuery(INSTITUTION_ID, { skip: !level });
+  const termsQuery = useListTermsQuery(undefined, { skip: !level });
+
+  if (!level) return <ForbiddenState />;
+
+  const retry = () => {
+    void institutionQuery.refetch();
+    void termsQuery.refetch();
+  };
+
+  let body: ReactNode;
+  if (institutionQuery.isLoading || termsQuery.isLoading) {
+    body = <LoadingSkeleton rows={5} />;
+  } else if (
+    institutionQuery.isError ||
+    termsQuery.isError ||
+    !institutionQuery.data ||
+    !termsQuery.data
+  ) {
+    body = <ErrorState message="לא הצלחנו לטעון את פרטי המוסד. נסו שוב." onRetry={retry} />;
+  } else {
+    body = (
+      <InstitutionSettings
+        initialInstitution={toInstitution(institutionQuery.data)}
+        initialTerms={termsQuery.data.items.map(toTerm)}
+        editable={canWrite(level)}
+      />
+    );
+  }
+
+  return (
     <div className="space-y-6">
       <PageHeader title="פרטי המוסד והגדרות" subtitle="פרטי בית הספר ומחזורי הערכה" />
-      <Tabs
-        label="הגדרות המוסד"
-        items={[
-          { value: 'details', label: 'פרטים', content: detailsTab },
-          { value: 'terms', label: 'מחזורי הערכה', content: termsTab },
-        ]}
-      />
+      {body}
     </div>
   );
 }
