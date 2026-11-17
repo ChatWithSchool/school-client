@@ -138,13 +138,7 @@ export default function Screen({
 
     return levels.map((value) => {
       const level = gradeLevels.find((item) => item.value === value)?.label ?? value;
-<<<<<<< Updated upstream
-      const classNames = Array.from({ length: count }, (_, index) => `ז${index + 1}`);
-
-      return { level, classes: classNames };
-=======
       return { level, classes: classNamesByCount(count) };
->>>>>>> Stashed changes
     });
   }, [classesPerLevel, levels]);
 
