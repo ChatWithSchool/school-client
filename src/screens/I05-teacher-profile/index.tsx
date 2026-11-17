@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Button, Tabs, TextField, Table } from '../../components/ui'; // התאמי את הנתיב היחסי לפי מיקום הקובץ שלך
+import { Button, Tabs, TextField, Table } from '../../components/ui';
 
 export default function TeacherProfileScreen() {
   const { id } = useParams();
@@ -26,7 +26,6 @@ export default function TeacherProfileScreen() {
     setTeacherData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // הגדרת הטאבים באמצעות רכיב ה-Tabs של המערכת (השמת הטאב ב-URL נעשית אוטומטית ברכיב!)
   const tabItems = [
     {
       value: 'details',
@@ -86,7 +85,6 @@ export default function TeacherProfileScreen() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
-      {/* כותרת עליונה של המסך */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 text-sm text-fg-secondary">
           <span>צוות</span>
@@ -105,7 +103,6 @@ export default function TeacherProfileScreen() {
         פרופיל מורה {id ? `(מזהה: ${id})` : ''}
       </h1>
 
-      {/* שימוש ברכיב ה-Tabs של המערכת שמנהל את ה-URL אוטומטית */}
       <Tabs items={tabItems} label="ניהול פרופיל מורה" />
     </div>
   );

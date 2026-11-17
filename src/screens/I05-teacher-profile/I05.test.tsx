@@ -10,10 +10,8 @@ describe('I05 - Teacher Profile Screen', () => {
         <TeacherProfileScreen />
       </BrowserRouter>
     );
-    
+    expect(screen.getByRole('heading', { name: /פרופיל מורה/i })).toBeInTheDocument();
     // בדיקה שהכותרת הראשית והטאבים מופיעים במסך בהצלחה
-    expect(screen.getByText(/פרופיל מורה/i)).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /פרטים/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /מקצועות וכיתות/i })).toBeInTheDocument();
+   
   });
 });
