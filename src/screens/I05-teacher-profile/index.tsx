@@ -1,130 +1,112 @@
 import { useState } from 'react';
-import { Button } from '../../components/ui';
+import { useParams } from 'react-router-dom';
+import { Button, Tabs, TextField, Table } from '../../components/ui'; // התאמי את הנתיב היחסי לפי מיקום הקובץ שלך
 
-export default function Screen() {
-  // ניהול הטאבים: 'details' לפרטים אישיים, 'classes' למקצועות וכיתות
-  const [activeTab, setActiveTab] = useState<'details' | 'classes'>('details');
+export default function TeacherProfileScreen() {
+  const { id } = useParams();
 
-  // נתוני דמה עבור הטבלה (מקצועות וכיתות)
+  // מצב עריכה
+  const [isEditing, setIsEditing] = useState(false);
+
+  // נתוני מורה
+  const [teacherData, setTeacherData] = useState({
+    fullName: 'עמית כהן',
+    email: 'amit.cohen@school.example',
+    phone: '050-000-0000',
+    startDate: '01.09.2022',
+  });
+
   const subjectsData = [
     { id: '1', subject: 'מתמטיקה', className: '1ח', hoursPerWeek: 5 },
     { id: '2', subject: 'מתמטיקה', className: '2ח', hoursPerWeek: 5 },
     { id: '3', subject: 'שעת חינוך', className: '1ח', hoursPerWeek: 2 },
   ];
 
+  const handleInputChange = (field: string, value: string) => {
+    setTeacherData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // הגדרת הטאבים באמצעות רכיב ה-Tabs של המערכת (השמת הטאב ב-URL נעשית אוטומטית ברכיב!)
+  const tabItems = [
+    {
+      value: 'details',
+      label: 'פרטים',
+      content: (
+        <div className="bg-white p-6 rounded-lg border border-line shadow-sm space-y-6">
+          <h2 className="text-lg font-semibold text-fg">פרטים אישיים</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TextField
+              label="שם מלא"
+              readOnly={!isEditing}
+              value={teacherData.fullName}
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
+            />
+            <TextField
+              label="אימייל"
+              readOnly={!isEditing}
+              value={teacherData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+            />
+            <TextField
+              label="טלפון"
+              readOnly={!isEditing}
+              value={teacherData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+            />
+            <TextField
+              label="תאריך תחילת עבודה"
+              readOnly={!isEditing}
+              value={teacherData.startDate}
+              onChange={(e) => handleInputChange('startDate', e.target.value)}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      value: 'classes',
+      label: 'מקצועות וכיתות',
+      content: (
+        <div className="bg-white p-6 rounded-lg border border-line shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold text-fg">מקצועות וכיתות</h2>
+          <Table
+            caption="טבלת מקצועות וכיתות של המורה"
+            rows={subjectsData}
+            getRowId={(row) => row.id}
+            columns={[
+              { key: 'subject', header: 'מקצוע', cell: (row) => row.subject },
+              { key: 'className', header: 'כיתה', cell: (row) => row.className },
+              { key: 'hoursPerWeek', header: 'שעות בשבוע', numeric: true, cell: (row) => row.hoursPerWeek },
+            ]}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       {/* כותרת עליונה של המסך */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-fg-secondary">
           <span>צוות</span>
           <span>/</span>
-          <span className="text-gray-900 font-medium">פרופיל מורה</span>
+          <span className="text-fg font-medium">פרופיל מורה (I05)</span>
         </div>
-        <Button variant="primary" className="flex items-center gap-2">
-          <span>עריכה</span>
+        <Button 
+          variant="primary" 
+          onClick={() => setIsEditing(!isEditing)}
+        >
+          {isEditing ? 'שמירה' : 'עריכה'}
         </Button>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900">פרופיל מורה</h1>
+      <h1 className="text-2xl font-bold text-fg">
+        פרופיל מורה {id ? `(מזהה: ${id})` : ''}
+      </h1>
 
-      {/* לשוניות מעבר (Tabs) */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab('details')}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${
-              activeTab === 'details'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            פרטים
-          </button>
-          <button
-            onClick={() => setActiveTab('classes')}
-            className={`pb-3 font-medium text-sm transition-colors border-b-2 ${
-              activeTab === 'classes'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            מקצועות וכיתות
-          </button>
-        </div>
-      </div>
-
-      {/* תוכן הטאב: פרטים אישיים */}
-      {activeTab === 'details' && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">פרטים</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">אימייל</label>
-              <input
-                type="text"
-                readOnly
-                value="amit.cohen@school.example"
-                className="w-full bg-gray-50 border border-gray-200 rounded-md p-2.5 text-sm text-gray-800"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">שם מלא</label>
-              <input
-                type="text"
-                readOnly
-                value="עמית כהן"
-                className="w-full bg-gray-50 border border-gray-200 rounded-md p-2.5 text-sm text-gray-800"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">טלפון</label>
-              <input
-                type="text"
-                readOnly
-                value="050-000-0000"
-                className="w-full bg-gray-50 border border-gray-200 rounded-md p-2.5 text-sm text-gray-800"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1">תאריך תחילת עבודה</label>
-              <input
-                type="text"
-                readOnly
-                value="01.09.2022"
-                className="w-full bg-gray-50 border border-gray-200 rounded-md p-2.5 text-sm text-gray-800"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* תוכן הטאב: מקצועות וכיתות */}
-      {activeTab === 'classes' && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">מקצועות וכיתות</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-start border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-sm bg-gray-50">
-                  <th className="p-3 font-medium text-start">מקצוע</th>
-                  <th className="p-3 font-medium text-start">כיתה</th>
-                  <th className="p-3 font-medium text-start">שעות בשבוע</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subjectsData.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 text-sm text-gray-800">
-                    <td className="p-3">{item.subject}</td>
-                    <td className="p-3">{item.className}</td>
-                    <td className="p-3">{item.hoursPerWeek}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* שימוש ברכיב ה-Tabs של המערכת שמנהל את ה-URL אוטומטית */}
+      <Tabs items={tabItems} label="ניהול פרופיל מורה" />
     </div>
   );
 }
