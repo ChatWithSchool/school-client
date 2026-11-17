@@ -8,6 +8,7 @@ import {
   Select,
   DatePicker,
   Tag,
+  Toast,
 } from '../../components/ui';
 
 interface FormData {
@@ -46,16 +47,13 @@ const CLASS_OPTIONS = [
 
 const TAG_OPTIONS = ['חדש', 'מעקב', 'תמיכה', 'חוג'];
 
-// בדיקת תעודת זהות ישראלית
 function isValidIsraeliId(id: string): boolean {
   return /^\d{9}$/.test(id);
 }
 
-// נתוני דמה לבדיקת כפילות
 const EXISTING_IDS = ['123456782', '987654321'];
 const EXISTING_EMAILS = ['amit.biton@example.com'];
 
-// נתוני דמה לעריכה — אותם תלמידים כמו ב-S01
 const MOCK_STUDENTS_MAP: Record<string, FormData> = {
   '1': { firstName: 'נועם', lastName: 'ביטון', nationalId: '123456782', birthDate: new Date(2012, 0, 1), className: 'ח1', phone: '050-000-0000', phoneExtra: '', parentEmail: 'amit.biton@example.com', address: '', notes: '', tags: ['חדש'] },
   '2': { firstName: 'יובל', lastName: 'קליין', nationalId: '234567891', birthDate: new Date(2012, 3, 5), className: 'ח1', phone: '050-000-0001', phoneExtra: '', parentEmail: '', address: '', notes: '', tags: [] },
@@ -78,6 +76,7 @@ export default function StudentFormPage() {
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isDirty, setIsDirty] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
   function set(field: keyof FormData, value: FormData[keyof FormData]) {
@@ -131,12 +130,34 @@ export default function StudentFormPage() {
 
   function handleSave() {
     if (!validate()) return;
-    alert('נשמר בהצלחה!');
+    setToastMessage(isEdit ? 'התלמיד עודכן בהצלחה!' : 'התלמיד נשמר בהצלחה!');
+    setIsDirty(false);
+    setTimeout(() => navigate('/students/s01'), 1000);
+  }
+
+  function handleSaveAndAddMore() {
+    if (!validate()) return;
+    setToastMessage('התלמיד נשמר בהצלחה!');
+
+    const currentClass = form.className;
+    setForm({
+      firstName: '',
+      lastName: '',
+      nationalId: '',
+      birthDate: null,
+      className: currentClass, // שומר על הכיתה הנבחרה
+      phone: '',
+      phoneExtra: '',
+      parentEmail: '',
+      address: '',
+      notes: '',
+      tags: [],
+    });
     setIsDirty(false);
   }
 
   function handleCancel() {
-    if (isDirty && !confirm('יש שינויים שלא נשמרו. האם לצאת?')) return;
+    if (isDirty && !window.confirm('יש שינויים שלא נשמרו. האם לצאת?')) return;
     navigate('/students/s01');
   }
 
@@ -156,6 +177,11 @@ export default function StudentFormPage() {
           { label: isEdit ? 'עריכת תלמיד' : 'תלמיד חדש' },
         ]}
       />
+
+      {/* הצגת הודעת Toast מעוצבת */}
+      {toastMessage && (
+        <Toast message={toastMessage} />
+      )}
 
       {/* פרטים אישיים */}
       <section className="rounded-xl border border-line bg-surface p-6 flex flex-col gap-4">
@@ -270,6 +296,9 @@ export default function StudentFormPage() {
       <div className="flex gap-3 justify-start">
         <Button variant="primary" onClick={handleSave}>
           שמור
+        </Button>
+        <Button variant="secondary" onClick={handleSaveAndAddMore}>
+          שמור והוסף עוד
         </Button>
         <Button variant="secondary" onClick={handleCancel}>
           בטל
