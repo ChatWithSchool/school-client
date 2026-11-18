@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Avatar,
   Badge,
   Button,
@@ -100,7 +101,7 @@ type ScreenState = 'loading' | 'error' | 'forbidden' | 'ok';
 
 export default function Screen() {
   const [screenState] = useState<ScreenState>('ok');
-  
+
   // ניהול הלשונית הפעילה דרך ה-URL בהתאם לדרישת המפרט (?tab=...)
   const [activeTab, setActiveTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -117,7 +118,7 @@ export default function Screen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // שדות טופס יצירה
   const [frameName, setFrameName] = useState('');
   const [grade, setGrade] = useState('');
@@ -134,10 +135,10 @@ export default function Screen() {
   const currentGroupMembers = selectedGroup?.members || [];
   const searchResults = searchQuery.trim()
     ? MOCK_STUDENTS.filter(
-        (s) =>
-          s.name.includes(searchQuery) &&
-          !currentGroupMembers.some((m) => m.id === s.id),
-      ).map((s) => ({ id: s.id, label: `${s.name} (${s.className})` }))
+      (s) =>
+        s.name.includes(searchQuery) &&
+        !currentGroupMembers.some((m) => m.id === s.id),
+    ).map((s) => ({ id: s.id, label: `${s.name} (${s.className})` }))
     : undefined;
 
   const handleCreateNew = async () => {
@@ -150,7 +151,7 @@ export default function Screen() {
     setIsLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 400));
-      
+
       if (activeTab === 'classes') {
         const existingClass = classesData.find(
           (c) => c.name.trim().toLowerCase() === frameName.trim().toLowerCase()
@@ -185,12 +186,12 @@ export default function Screen() {
           selectedClasses.length > 0 ? selectedClasses.join(', ') : 'חוצת-כיתה';
         setGroupsData((prev) => [
           ...prev,
-          { 
-            id: String(Date.now()), 
-            name: frameName.trim(), 
+          {
+            id: String(Date.now()),
+            name: frameName.trim(),
             classRef,
-            studentsCount: 0, 
-            members: [] 
+            studentsCount: 0,
+            members: []
           },
         ]);
       }
@@ -262,7 +263,7 @@ export default function Screen() {
 
   if (screenState === 'loading') return <LoadingSkeleton />;
   if (screenState === 'error')
-    return <ErrorState message="אירעה שגיאה בטעינת הנתונים" onRetry={() => {}} />;
+    return <ErrorState message="אירעה שגיאה בטעינת הנתונים" onRetry={() => { }} />;
   if (screenState === 'forbidden') return <ForbiddenState />;
 
   const tabItems = [
@@ -336,9 +337,9 @@ export default function Screen() {
       >
         <div className="flex flex-col gap-4 py-2">
           {formError && (
-            <div className="rounded bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+            <Alert tone="danger">
               {formError}
-            </div>
+            </Alert>
           )}
 
           <TextField
@@ -377,11 +378,10 @@ export default function Screen() {
                       type="button"
                       aria-pressed={isSelected}
                       onClick={() => toggleClassSelection(classItem.name)}
-                      className={`rounded-md border px-3 py-1.5 text-body transition-colors ${
-                        isSelected
+                      className={`rounded-md border px-3 py-1.5 text-body transition-colors ${isSelected
                           ? 'border-primary-600 bg-primary-600 text-white'
                           : 'border-line bg-surface text-fg hover:border-line-strong'
-                      }`}
+                        }`}
                     >
                       {classItem.name}
                     </button>
