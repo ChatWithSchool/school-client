@@ -1,40 +1,56 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
-import { 
-  DEMO_PASSWORD, 
-  USERS, 
-  addAnnouncement, 
+import { assessmentHandlers } from './assessments';
+import {
+  DEMO_PASSWORD,
+  USERS,
+  addAnnouncement,
   announcements,
   t03AvailableTeachers,
-  t03UncoveredLessons, } from './data';
+  t03UncoveredLessons,
+} from './data';
+import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
+import { joinInviteHandlers } from './joinInvite';
+import { sharedHandlers } from './shared/handlers';
+import { teachingHandlers } from './teaching';
 
-const err = (
-  status: number,
-  code: string,
-  message: string,
-  details?: { field: string; message: string }[],
-) => HttpResponse.json({ error: { code, message, details } }, { status });
+/**
+ * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
+ *
+ * The GET handlers for the shared collections (rooms, events, lessons, teaching assignments,
+ * invites, assessments, grades, student tags, attendance and attendance alerts) already exist in
+ * ./shared/handlers.ts. Do not add them again here: add only the write handlers (POST, PUT,
+ * PATCH, DELETE) of your own screen, and change the data in ./shared so the GET handlers see it.
+ */
+const MOCK_INSTITUTION = {
+  id: 'inst-1',
+  name: 'בית ספר לדוגמה',
+  type: 'mixed',
+  address: 'רחוב הדוגמה 1, תל אביב',
+  phone: '03-1234567',
+  contactEmail: 'office@school.example',
+  activeYearId: 'y2026',
+};
 
-function userOf(request: Request) {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const email = token.startsWith('mock.') ? token.slice(5) : '';
-  return USERS[email] ? { email, ...USERS[email] } : null;
-}
+const MOCK_TERMS = [
+  { id: 't1', name: "מחצית א'", startDate: '2026-09-01', endDate: '2027-01-31', status: 'closed' },
+  { id: 't2', name: "מחצית ב'", startDate: '2027-02-01', endDate: '2027-06-30', status: 'open' },
+];
 
-/** Same rule as the server: 401 without a user, 403 without access, 403 READ_ONLY when writing with a read level. */
-function authz(request: Request, screen: string, action: 'read' | 'write') {
-  const user = userOf(request);
-  if (!user) return { res: err(401, 'UNAUTHENTICATED', 'נדרשת התחברות') };
-  const level = permissionsFor(user.roles)[screen];
-  if (!level) return { res: err(403, 'FORBIDDEN', 'אין הרשאה לפעולה זו') };
-  if (action === 'write' && level === 'read')
-    return { res: err(403, 'READ_ONLY', 'יש הרשאת צפייה בלבד') };
-  return { user };
-}
-
-/** Mock API. Add handlers for your endpoints so your screen works before the server is ready. */
 export const handlers = [
+  ...joinInviteHandlers,
+  http.get('*/api/institutions/:id', ({ request }) => {
+    const user = userOf(request);
+    if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
+    return HttpResponse.json(MOCK_INSTITUTION);
+  }),
+
+  http.get('*/api/terms', ({ request }) => {
+    const user = userOf(request);
+    if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
+    return HttpResponse.json({ items: MOCK_TERMS });
+  }),
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     const user = USERS[email.trim().toLowerCase()];
@@ -104,15 +120,14 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-    http.get('*/api/staff/available', ({ request }) => {
+  http.get('*/api/staff/available', ({ request }) => {
     const a = authz(request, 'T03', 'read');
     if (a.res) return a.res;
     return HttpResponse.json({ items: t03AvailableTeachers });
   }),
 
-  http.get('*/api/lessons', ({ request }) => {
-    const a = authz(request, 'T03', 'read');
-    if (a.res) return a.res;
-    return HttpResponse.json({ items: t03UncoveredLessons });
-  }),
+  ...sharedHandlers,
+  ...teachingHandlers,
+  ...assessmentHandlers,
+
 ];

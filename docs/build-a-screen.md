@@ -6,7 +6,8 @@
    - מבנה: כותרת (`PageHeader`), מצבי מסך, תוכן. בונות מהרכיבים של `components/ui`: `import { Button, TextField, Table } from '../../components/ui'`. מצבי המסך ב-`components/StateViews.tsx`.
    - כל הרכיבים, עם כל הווריאנטים והמצבים שלהם, מוצגים ב-Storybook: `npm run storybook` (http://localhost:6006). שמות הרכיבים והמאפיינים זהים לספריית הרכיבים ב-Figma.
    - `styles/recipes.ts` רק למקום שאין בו רכיב מתאים.
-   - נתוני הדמה: הוסיפי handlers ב-`src/mocks/handlers.ts` לפי החוזה ב-`openapi/openapi.yaml`, כדי שהמסך יעבוד בלי שרת.
+   - נתוני הדמה: כתבי handlers לפי החוזה ב-`openapi/openapi.yaml`, כדי שהמסך יעבוד בלי שרת. שימי אותם בקובץ משלך, `src/mocks/<מסך>.ts` (למשל `export const fooHandlers = [...]`), והוסיפי ל-`src/mocks/handlers.ts` רק שתי שורות: ה-import, ו-`...fooHandlers` ברשימה. כך כולן מוסיפות שורות קצרות לאותו קובץ, וקונפליקט, אם יש, קל לפתרון. הנתונים לא נשארים בתוך קומפוננטת המסך: המסך קורא אותם דרך `src/api/<משאב>Api.ts`, כמו שיקרא מהשרת האמיתי.
+   - לאוספים המשותפים (חדרים, אירועים, שיעורים, שיוכי הוראה, הזמנות, מבחנים וציונים, תגיות תלמיד, נוכחות והתראות נוכחות) כבר יש handlers של GET ב-`src/mocks/shared`. אל תוסיפי אותם שוב. הוסיפי רק את ה-handlers של הכתיבה של המסך שלך, ושני את הנתונים ב-`shared` כדי שה-GET יראה את השינוי.
 4. **API:** צרי `src/api/<משאב>Api.ts` עם `apiSlice.injectEndpoints` (ראי `announcementsApi.ts`). אל תערכי את `apiSlice.ts` עצמו.
 5. **הרשאות:** `usePermission('<מסך>')` ו-`canWrite(level)`. הסתירי פעולות שאין הרשאה אליהן.
 6. **חיבור מקצה לקצה (ספרינט 4):** הוציאי את ה-handlers שלך מ-`mocks` שאינם נחוצים והריצי מול השרת האמיתי.
