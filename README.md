@@ -13,6 +13,8 @@ npm run dev                      # http://localhost:5173
 **בלי שרת:** ב-`.env` הגדירי `VITE_USE_MOCKS=true`. הקליינט עובד על נתוני הדמה שב-`src/mocks`.
 **עם שרת:** הפעילי את `school-server` על פורט 4000 (`npm run dev` שם). הקליינט מעביר אליו כל בקשה ל-`/api`.
 
+כדי לשמור שיוכים ומקצועות של I06 במסד הנתונים: הפעילי MongoDB, הריצי `npm run seed` מתוך `school-server`, ואז הפעילי שם `npm run dev`. ודאי ש-`VITE_USE_MOCKS` אינו מוגדר ל-`true`; במצב דמה הנתונים נשמרים בזיכרון בלבד.
+
 משתמשי הדמה (סיסמה `Demo1234!`): הנהלה `yuval.mizrahi@school.example`, מזכירות `or.barak@school.example`, מחנכת `amit.cohen@school.example`, מורה `mor.dahan@school.example`, הורה `amit.biton@school.example`.
 
 ## פקודות
