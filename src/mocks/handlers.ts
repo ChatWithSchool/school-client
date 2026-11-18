@@ -1,10 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
+import { assessmentHandlers } from './assessments';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
+import { teachingHandlers } from './teaching';
 
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
@@ -14,8 +16,34 @@ import { sharedHandlers } from './shared/handlers';
  * ./shared/handlers.ts. Do not add them again here: add only the write handlers (POST, PUT,
  * PATCH, DELETE) of your own screen, and change the data in ./shared so the GET handlers see it.
  */
+const MOCK_INSTITUTION = {
+  id: 'inst-1',
+  name: 'בית ספר לדוגמה',
+  type: 'mixed',
+  address: 'רחוב הדוגמה 1, תל אביב',
+  phone: '03-1234567',
+  contactEmail: 'office@school.example',
+  activeYearId: 'y2026',
+};
+
+const MOCK_TERMS = [
+  { id: 't1', name: "מחצית א'", startDate: '2026-09-01', endDate: '2027-01-31', status: 'closed' },
+  { id: 't2', name: "מחצית ב'", startDate: '2027-02-01', endDate: '2027-06-30', status: 'open' },
+];
+
 export const handlers = [
   ...joinInviteHandlers,
+  http.get('*/api/institutions/:id', ({ request }) => {
+    const user = userOf(request);
+    if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
+    return HttpResponse.json(MOCK_INSTITUTION);
+  }),
+
+  http.get('*/api/terms', ({ request }) => {
+    const user = userOf(request);
+    if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
+    return HttpResponse.json({ items: MOCK_TERMS });
+  }),
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     const user = USERS[email.trim().toLowerCase()];
@@ -86,4 +114,6 @@ export const handlers = [
   }),
 
   ...sharedHandlers,
+  ...teachingHandlers,
+  ...assessmentHandlers,
 ];
