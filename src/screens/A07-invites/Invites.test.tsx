@@ -7,6 +7,7 @@ import { renderWithProviders } from '../../test/utils';
 import InvitesScreen from '.';
 
 const MANAGER = 'mock.yuval.mizrahi@school.example';
+const PARENT = 'mock.amit.biton@school.example';
 const LIOR = 'lior.peretz@school.example';
 const render = () => renderWithProviders(<InvitesScreen />, { token: MANAGER });
 const fail = (status: number, code: string) => () =>
@@ -90,5 +91,28 @@ describe('A07 invites', () => {
     answer(403, 'FORBIDDEN');
     render();
     expect(await screen.findByText('אין לך הרשאה לצפות בעמוד זה')).toBeInTheDocument();
+  });
+
+  it('שגיאה: אין חיבור לרשת', async () => {
+    server.use(http.get('*/api/invites', () => delay('infinite')));
+    const { unmount } = render();
+    expect(await screen.findByText('אין חיבור לרשת')).toBeInTheDocument();
+    unmount();
+    server.use(http.get('*/api/invites', fail(500, 'INTERNAL')));
+    render();
+    expect(await screen.findByText(/קוד תקלה: INTERNAL/)).toBeInTheDocument();
+  });
+
+  it('הרשאה: משתמש ללא A07 מקבל חסימה ולא שולח בקשת הזמנות', async () => {
+    let invitesRequested = false;
+    server.use(
+      http.get('*/api/invites', () => {
+        invitesRequested = true;
+        return HttpResponse.json({ items: [], total: 0, page: 1, size: 25 });
+      }),
+    );
+    renderWithProviders(<InvitesScreen />, { token: PARENT });
+    expect(await screen.findByText('אין לך הרשאה לצפות בעמוד זה')).toBeInTheDocument();
+    expect(invitesRequested).toBe(false);
   });
 });

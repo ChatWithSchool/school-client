@@ -18,6 +18,7 @@ import { ErrorState, ForbiddenState } from '../../components/StateViews';
 import type { TableColumn } from '../../components/ui';
 import type { ApiErrorBody, Invite, RoleKey } from '../../api/types';
 import { errorMessage, fieldErrors } from '../../api/errors';
+import { canWrite, usePermission } from '../../features/auth/usePermission';
 import {
   useCancelInviteMutation,
   useCreateInviteMutation,
@@ -49,9 +50,14 @@ const ACTIONS = {
 const KINDS = ['resend', 'cancel'] as const;
 
 export default function InvitesScreen() {
+  const level = usePermission('A07');
+  const canAccess = canWrite(level);
   const toast = useToast();
   const [, setParams] = useSearchParams();
-  const { data, isFetching, error, refetch } = useListInvitesQuery({ status: 'pending' });
+  const { data, isFetching, error, refetch } = useListInvitesQuery(
+    { status: 'pending' },
+    { skip: !canAccess },
+  );
   const [createInvite, createState] = useCreateInviteMutation();
   const [resend, resendState] = useResendInviteMutation();
   const [cancel, cancelState] = useCancelInviteMutation();
@@ -246,6 +252,8 @@ export default function InvitesScreen() {
     </div>
   );
 
+  if (level !== undefined && !canAccess) return <ForbiddenState />;
+  if (level === undefined) return null;
   if (code === 'FORBIDDEN' || code === 403) return <ForbiddenState />;
 
   return (
