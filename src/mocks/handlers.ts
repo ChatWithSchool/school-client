@@ -3,6 +3,7 @@ import type { Announcement } from '../api/types';
 import { assessmentHandlers } from './assessments';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
+import { inviteHandlers } from './invites';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
@@ -113,6 +114,7 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  ...inviteHandlers,
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
