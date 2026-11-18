@@ -148,7 +148,7 @@ function StudentCard({ student }: { student: Student }) {
 
 function DetailsTab({ student }: { student: Student }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+    <div className="grid gap-6 lg:grid-cols-3" >
       <Card>
         <h2 className={`${text.h3} mb-4`}>פרטים אישיים</h2>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
