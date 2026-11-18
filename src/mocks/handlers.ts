@@ -4,6 +4,7 @@ import { assessmentHandlers } from './assessments';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
+import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
 import { teachingHandlers } from './teaching';
 
@@ -31,6 +32,7 @@ const MOCK_TERMS = [
 ];
 
 export const handlers = [
+  ...joinInviteHandlers,
   http.get('*/api/institutions/:id', ({ request }) => {
     const user = userOf(request);
     if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
