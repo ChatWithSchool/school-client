@@ -13,8 +13,11 @@ export const teachingHandlers = [
     const a = authz(request, 'G08', 'read');
     if (a.res) return a.res;
     const termId = new URL(request.url).searchParams.get('termId');
-    const inTerm = (date: string | null) =>
-      !termId || date === null || termOf(new Date(date)) === termId;
+    const inTerm = (date: string | null) => {
+      if (!date) return true;
+      const assessmentDate = new Date(`${date}T23:59:59`);
+      return assessmentDate <= new Date() && (!termId || termOf(assessmentDate) === termId);
+    };
     const items: TeachingCard[] = shared.teachingAssignments
       .filter((t) => t.teacherId === a.user.email)
       .map((t) => {
