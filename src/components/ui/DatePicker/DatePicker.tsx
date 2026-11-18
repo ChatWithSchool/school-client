@@ -227,16 +227,27 @@ function Calendar({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        {/* chevron-left is mirrored in RTL: it points to the right, to the previous month */}
         <IconButton
           icon="chevron-left"
           label="החודש הקודם"
           size="S"
           onClick={() => setFocused(addMonths(focused, -1))}
         />
-        <p aria-live="polite" className="text-body-strong text-fg">
-          {formatMonth(focused)}
-        </p>
+        <div className="flex items-center gap-1">
+          <span aria-live="polite" className="text-body-strong text-fg">
+            {new Intl.DateTimeFormat('he', { month: 'long' }).format(focused)}
+          </span>
+          <select
+            aria-label="בחרו שנה"
+            value={focused.getFullYear()}
+            onChange={(e) => setFocused(new Date(Number(e.target.value), focused.getMonth(), 1))}
+            className="rounded border border-line bg-surface px-1 py-0.5 text-body text-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
         <IconButton
           icon="chevron-right"
           label="החודש הבא"
