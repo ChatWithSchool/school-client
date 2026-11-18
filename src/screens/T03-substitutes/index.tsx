@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
+  useAssignSubstituteMutation,
   useListAvailableTeachersQuery,
   useListUncoveredLessonsQuery,
   type AvailableTeacher,
 } from '../../api/substitutesApi';
 import { errorMessage } from '../../api/errors';
-import { Badge, Button, Card, PageHeader, Select, Table } from '../../components/ui';
+import { Alert, Badge, Button, Card, PageHeader, Select, Table } from '../../components/ui';
 import type { TableColumn } from '../../components/ui';
 import {
   EmptyState,
@@ -32,38 +33,68 @@ const SLOT_OPTIONS = [
   { value: '4', label: 'שיעור 4 (10:40)' },
 ];
 
+/** Today as YYYY-MM-DD in local time. A substitute covers this one day only. */
+const today = () => new Date().toLocaleDateString('en-CA');
+
 export default function Screen() {
   const level = usePermission('T03');
   const [day, setDay] = useState('all');
   const [slot, setSlot] = useState('all');
-  const [assignedIds, setAssignedIds] = useState<string[]>([]);
+  const [lessonId, setLessonId] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const teachersQuery = useListAvailableTeachersQuery({ date: day, slot });
   const uncoveredQuery = useListUncoveredLessonsQuery();
+  const [assign, { isLoading: assigning }] = useAssignSubstituteMutation();
+
+  const teachers = teachersQuery.data?.items ?? [];
+  const uncovered = uncoveredQuery.data?.items ?? [];
+  // the lesson to cover: the chosen one, or the first in the list
+  const selectedId = uncovered.some((l) => l.id === lessonId) ? lessonId : (uncovered[0]?.id ?? '');
+  const lessonOptions = uncovered.map((l) => ({
+    value: l.id,
+    label: `שיעור ${l.lessonNumber} · ${l.subject} · ${l.className}`,
+  }));
 
   const status = (teachersQuery.error as { status?: number } | undefined)?.status;
   if (status === 403 || (level === undefined && teachersQuery.isError)) return <ForbiddenState />;
 
-  const teachers = teachersQuery.data?.items ?? [];
-  const uncovered = uncoveredQuery.data?.items ?? [];
+  async function onAssign(teacher: AvailableTeacher) {
+    setNotice(null);
+    setAssignError(null);
+    try {
+      await assign({
+        lessonId: selectedId,
+        date: today(),
+        substituteTeacherId: teacher.id,
+      }).unwrap();
+      setNotice(`השיבוץ של ${teacher.name} נשמר. השיעור הוסר מהרשימה.`);
+      uncoveredQuery.refetch();
+      teachersQuery.refetch();
+    } catch (e) {
+      setAssignError(errorMessage(e));
+    }
+  }
 
   const columns: TableColumn<AvailableTeacher>[] = [
     { key: 'name', header: 'שם', cell: (t) => t.name },
     { key: 'subjects', header: 'מקצועות', cell: (t) => t.subjects },
     { key: 'hours', header: 'שעות באותו יום', numeric: true, cell: (t) => t.hoursThatDay },
-    {
-      key: 'action',
-      header: 'פעולה',
-      cell: (t) =>
-        canWrite(level) ? (
-          <Button
-            disabled={assignedIds.includes(t.id)}
-            onClick={() => setAssignedIds([...assignedIds, t.id])}
-          >
-            {assignedIds.includes(t.id) ? 'שובץ' : 'שבץ'}
-          </Button>
-        ) : null,
-    },
+    // read-only users do not get the action column at all
+    ...(canWrite(level)
+      ? [
+          {
+            key: 'action',
+            header: 'פעולה',
+            cell: (t: AvailableTeacher) => (
+              <Button disabled={!selectedId || assigning} onClick={() => onAssign(t)}>
+                שבץ
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -73,14 +104,28 @@ export default function Screen() {
       <section aria-label="סינון" className="flex gap-4">
         <Select label="יום" options={DAY_OPTIONS} value={day} onValueChange={setDay} />
         <Select label="שעה" options={SLOT_OPTIONS} value={slot} onValueChange={setSlot} />
+        {canWrite(level) && lessonOptions.length > 0 && (
+          <Select
+            label="שיעור לשיבוץ"
+            options={lessonOptions}
+            value={selectedId}
+            onValueChange={setLessonId}
+          />
+        )}
       </section>
+
+      {notice && <Alert tone="success">{notice}</Alert>}
+      {assignError && <ErrorState message={assignError} />}
 
       <Card>
         <section aria-label="מורים זמינים" className="flex flex-col gap-3">
           <h2 className="text-h3">מורים זמינים</h2>
           {teachersQuery.isLoading && <LoadingSkeleton />}
           {teachersQuery.isError && (
-            <ErrorState message={errorMessage(teachersQuery.error)} onRetry={teachersQuery.refetch} />
+            <ErrorState
+              message={errorMessage(teachersQuery.error)}
+              onRetry={teachersQuery.refetch}
+            />
           )}
           {teachersQuery.data && teachers.length === 0 && (
             <EmptyState title="אין מורים פנויים" text="בשעה שנבחרה כל המורים משובצים." />
