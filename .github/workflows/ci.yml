@@ -21,6 +21,9 @@ jobs:
       - run: npm test
       # the API address is /api (same site as the pages), so one build works for dev and stage
       - run: npm run build
+        env:
+          VITE_USE_MOCKS: true
+          VITE_API_URL: /api
       - run: npm run build-storybook
       - name: Keep the build for the deploy job
         if: github.event_name == 'push'
