@@ -62,16 +62,24 @@ const MOCK_STUDENTS_MAP: Record<string, FormData> = {
   '3': { firstName: 'עדי', lastName: 'פרץ', nationalId: '345678912', birthDate: new Date(2011, 6, 12), className: 'ח2', phone: '050-000-0002', phoneExtra: '', parentEmail: '', address: '', notes: '', tags: ['מעקב'] },
 };
 
+const EMPTY_FORM: FormData = {
+  firstName: '',
+  lastName: '',
+  nationalId: '',
+  birthDate: null,
+  className: '',
+  phone: '',
+  phoneExtra: '',
+  parentEmail: '',
+  address: '',
+  notes: '',
+  tags: [],
+};
+
 export default function StudentFormPage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id');
   const isEdit = !!editId;
-
-  const EMPTY_FORM: FormData = {
-    firstName: '', lastName: '', nationalId: '', birthDate: null,
-    className: '', phone: '', phoneExtra: '', parentEmail: '',
-    address: '', notes: '', tags: [],
-  };
 
   const [form, setForm] = useState<FormData>(() =>
     editId && MOCK_STUDENTS_MAP[editId] ? MOCK_STUDENTS_MAP[editId] : EMPTY_FORM
@@ -132,6 +140,17 @@ export default function StudentFormPage() {
   function handleSave() {
     if (!validate()) return;
     alert('נשמר בהצלחה!');
+    setIsDirty(false);
+  }
+
+  function handleSaveAndAddAnother() {
+    if (!validate()) return;
+    alert('נשמר בהצלחה!');
+    setForm({
+      ...EMPTY_FORM,
+      className: form.className,
+    });
+    setErrors({});
     setIsDirty(false);
   }
 
@@ -271,7 +290,14 @@ export default function StudentFormPage() {
         <Button variant="primary" onClick={handleSave}>
           שמור
         </Button>
-        <Button variant="secondary" onClick={handleCancel}>
+        {!isEdit && (
+          <Button variant="secondary" onClick={handleSaveAndAddAnother}>
+            שמור והוסף עוד
+          </Button>
+        )}
+        <Button variant="secondary" onClick={handleCancel}
+        className="border border-gray-400 text-gray-900 font-semibold hover:bg-gray-100"
+        >
           בטל
         </Button>
       </div>
