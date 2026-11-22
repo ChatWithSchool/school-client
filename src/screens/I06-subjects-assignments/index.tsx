@@ -1,145 +1,105 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { errorMessage } from '../../api/errors';
 import {
-  useCreateSubjectMutation,
   useGetTeachingAssignmentsQuery,
+  useListClassesQuery,
   useListSubjectsQuery,
+  useListTeachersQuery,
   useUpdateTeachingAssignmentMutation,
   type Subject,
+  type TeachingAssignment,
+  type TeachingClass,
+  type TeachingTeacher,
 } from '../../api/subjectsAssignmentsApi';
-import { ErrorState } from '../../components/StateViews';
 import {
-  Button,
+  ErrorState,
+  ForbiddenState,
+  LoadingSkeleton,
+} from '../../components/StateViews';
+import {
   PageHeader,
   Select,
   Table,
   Tabs,
-  TextField,
   useToast,
   type TableColumn,
 } from '../../components/ui';
+import { canWrite, usePermission } from '../../features/auth/usePermission';
 
-const gradeOptions = ['ז', 'ח', 'ט', 'י', 'יא', 'יב'];
 const noTeacherValue = 'none';
-const noClasses: { id: string; name: string; grade: string }[] = [];
-const noSubjects: Subject[] = [];
 
-function SubjectList({ subjects, loading }: { subjects: Subject[] | undefined; loading: boolean }) {
-  const toast = useToast();
-  const [createSubject, createState] = useCreateSubjectMutation();
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [grades, setGrades] = useState<string[]>([]);
-
+function SubjectList({
+  subjects,
+  loading,
+}: {
+  subjects: Subject[];
+  loading: boolean;
+}) {
   const columns: TableColumn<Subject>[] = [
     { key: 'name', header: 'שם המקצוע', cell: (subject) => subject.name },
     { key: 'code', header: 'קוד', cell: (subject) => subject.code, numeric: true },
     { key: 'grades', header: 'שכבות', cell: (subject) => subject.grades.join(', ') },
-    { key: 'actions', header: 'פעולות', cell: () => '—' },
   ];
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    try {
-      await createSubject({ name: name.trim(), code: code.trim(), grades }).unwrap();
-      setName('');
-      setCode('');
-      setGrades([]);
-      toast({ tone: 'success', message: 'המקצוע נוסף בהצלחה' });
-    } catch (error) {
-      toast({ tone: 'danger', message: errorMessage(error) });
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <form
-        onSubmit={submit}
-        className="grid gap-4 rounded-xl border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end"
-      >
-        <TextField
-          label="שם המקצוע"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          required
-          minLength={2}
-          maxLength={80}
-        />
-        <TextField
-          label="קוד"
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          required
-          minLength={2}
-          maxLength={12}
-        />
-        <Select
-          label="שכבות"
-          multi
-          value={grades}
-          onValueChange={setGrades}
-          options={gradeOptions.map((grade) => ({ value: grade, label: grade }))}
-          placeholder="בחרו שכבות"
-          required
-        />
-        <Button type="submit" loading={createState.isLoading} disabled={!name.trim() || !code.trim() || !grades.length}>
-          הוספת מקצוע
-        </Button>
-      </form>
-
-      <Table
-        caption="רשימת המקצועות"
-        columns={columns}
-        rows={subjects}
-        getRowId={(subject) => subject.id}
-        loading={loading}
-        empty={<span>עדיין לא הוגדרו מקצועות.</span>}
-      />
-    </div>
+    <Table
+      caption="רשימת המקצועות"
+      columns={columns}
+      rows={subjects}
+      getRowId={(subject) => subject.id}
+      loading={loading}
+      empty={<span>עדיין לא הוגדרו מקצועות.</span>}
+    />
   );
 }
 
 function AssignmentForm({
-  data,
+  classes,
+  subjects,
+  teachers,
+  assignments,
   loading,
+  writable,
+  classId,
+  onClassChange,
 }: {
-  data:
-    | {
-        classes: { id: string; name: string; grade: string }[];
-        teachers: { id: string; firstName: string; lastName: string }[];
-        assignments: { classId: string; subjectId: string; teacherId: string }[];
-      }
-    | undefined;
+  classes: TeachingClass[];
+  subjects: Subject[];
+  teachers: TeachingTeacher[];
+  assignments: TeachingAssignment[];
   loading: boolean;
+  writable: boolean;
+  classId: string;
+  onClassChange: (classId: string) => void;
 }) {
   const toast = useToast();
   const [grade, setGrade] = useState('all');
-  const [classId, setClassId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [saveAssignment, saveState] = useUpdateTeachingAssignmentMutation();
-  const subjectsQuery = useListSubjectsQuery();
 
-  const classes = data?.classes ?? noClasses;
-  const subjects = subjectsQuery.data?.items ?? noSubjects;
-  const visibleClasses = grade === 'all' ? classes : classes.filter((item) => item.grade === grade);
-  const selectedAssignment = data?.assignments.find(
+  const visibleClasses = grade === 'all'
+    ? classes
+    : classes.filter((item) => item.grade === grade);
+  const selectedAssignment = assignments.find(
     (assignment) => assignment.classId === classId && assignment.subjectId === subjectId,
   );
-  const layerOptions = useMemo(
+  const gradeOptionsList = useMemo(
     () => [...new Set(classes.map((item) => item.grade))],
     [classes],
   );
 
   useEffect(() => {
-    if (!visibleClasses.some((item) => item.id === classId)) setClassId(visibleClasses[0]?.id ?? '');
-  }, [classId, visibleClasses]);
+    if (!visibleClasses.some((item) => item.id === classId))
+      onClassChange(visibleClasses[0]?.id ?? '');
+  }, [classId, onClassChange, visibleClasses]);
 
   useEffect(() => {
-    if (!subjects.some((item) => item.id === subjectId)) setSubjectId(subjects[0]?.id ?? '');
+    if (!subjects.some((item) => item.id === subjectId))
+      setSubjectId(subjects[0]?.id ?? '');
   }, [subjectId, subjects]);
 
   const changeAssignment = async (teacherValue: string) => {
-    if (!classId || !subjectId) return;
+    if (!classId || !subjectId || !writable) return;
     try {
       await saveAssignment({
         classId,
@@ -152,12 +112,13 @@ function AssignmentForm({
     }
   };
 
-  if (subjectsQuery.isError) {
-    return <ErrorState message={errorMessage(subjectsQuery.error)} onRetry={subjectsQuery.refetch} />;
-  }
-  if (loading || subjectsQuery.isLoading) return <div role="status">טוען נתונים…</div>;
+  if (loading) return <LoadingSkeleton />;
   if (!classes.length || !subjects.length) {
-    return <p className="rounded-lg border border-line bg-surface p-5 text-body text-fg-secondary">כדי לשייך מורה, צריך להגדיר תחילה כיתות ומקצועות.</p>;
+    return (
+      <p className="rounded-lg border border-line bg-surface p-5 text-body text-fg-secondary">
+        כדי לשייך מורה, צריך להגדיר תחילה כיתות ומקצועות.
+      </p>
+    );
   }
 
   return (
@@ -169,13 +130,13 @@ function AssignmentForm({
           onValueChange={setGrade}
           options={[
             { value: 'all', label: 'הכל' },
-            ...layerOptions.map((item) => ({ value: item, label: item })),
+            ...gradeOptionsList.map((item) => ({ value: item, label: item })),
           ]}
         />
         <Select
           label="כיתה"
           value={classId}
-          onValueChange={setClassId}
+          onValueChange={onClassChange}
           options={visibleClasses.map((item) => ({ value: item.id, label: item.name }))}
           disabled={!visibleClasses.length}
         />
@@ -195,15 +156,17 @@ function AssignmentForm({
           onValueChange={(value) => void changeAssignment(value)}
           options={[
             { value: noTeacherValue, label: 'ללא שיוך' },
-            ...(data?.teachers ?? []).map((teacher) => ({
+            ...teachers.map((teacher) => ({
               value: teacher.id,
               label: `${teacher.firstName} ${teacher.lastName}`,
             })),
           ]}
-          disabled={saveState.isLoading}
+          disabled={!writable || saveState.isLoading}
         />
         {!selectedAssignment && (
-          <p className="mt-2 text-body text-warning-700">עדיין לא משויך מורה למקצוע בכיתה שנבחרה.</p>
+          <p className="mt-2 text-body text-warning-700">
+            עדיין לא משויך מורה למקצוע בכיתה שנבחרה.
+          </p>
         )}
       </section>
     </div>
@@ -211,50 +174,91 @@ function AssignmentForm({
 }
 
 export default function Screen() {
+  const level = usePermission('I06');
   const subjects = useListSubjectsQuery();
-  const assignments = useGetTeachingAssignmentsQuery();
+  const classes = useListClassesQuery();
+  const staff = useListTeachersQuery();
+  const [classId, setClassId] = useState('');
+
+  useEffect(() => {
+    if (!classId && classes.data?.items.length)
+      setClassId(classes.data.items[0].id);
+  }, [classId, classes.data]);
+
+  const assignments = useGetTeachingAssignmentsQuery(classId, { skip: !classId });
+  const forbidden =
+    (subjects.error as { status?: number } | undefined)?.status === 403 ||
+    (classes.error as { status?: number } | undefined)?.status === 403 ||
+    (staff.error as { status?: number } | undefined)?.status === 403 ||
+    (assignments.error as { status?: number } | undefined)?.status === 403;
+
+  if (forbidden) return <ForbiddenState />;
+
+  const error = subjects.error ?? classes.error ?? staff.error ?? assignments.error;
+  if (subjects.isError || classes.isError || staff.isError || assignments.isError) {
+    return (
+      <div className="min-h-full bg-page p-6">
+        <ErrorState
+          message={errorMessage(error)}
+          onRetry={() => {
+            void subjects.refetch();
+            void classes.refetch();
+            void staff.refetch();
+            void assignments.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
+  const loading =
+    subjects.isLoading ||
+    classes.isLoading ||
+    staff.isLoading ||
+    Boolean(classId && assignments.isLoading);
 
   return (
     <div className="min-h-full bg-page p-6">
       <div className="mx-auto max-w-7xl rounded-xl bg-page p-5">
         <PageHeader title="מקצועות ושיוכי הוראה" className="mb-5" />
 
-        {(subjects.isError || assignments.isError) && (
-          <div className="mb-4">
-            <ErrorState
-              message={errorMessage(subjects.error ?? assignments.error)}
-              onRetry={() => {
-                void subjects.refetch();
-                void assignments.refetch();
-              }}
-            />
-          </div>
+        {loading ? (
+          <LoadingSkeleton />
+        ) : (
+          <Tabs
+            label="לשוניות מקצועות ושיוך הוראה"
+            defaultValue="assignments"
+            className="w-full"
+            items={[
+              {
+                value: 'subjects',
+                label: 'מקצועות',
+                content: (
+                  <SubjectList
+                    subjects={subjects.data?.items ?? []}
+                    loading={subjects.isLoading}
+                  />
+                ),
+              },
+              {
+                value: 'assignments',
+                label: 'שיוך הוראה',
+                content: (
+                  <AssignmentForm
+                    classes={classes.data?.items ?? []}
+                    subjects={subjects.data?.items ?? []}
+                    teachers={staff.data?.items ?? []}
+                    assignments={assignments.data?.items ?? []}
+                    loading={Boolean(classId && assignments.isLoading)}
+                    writable={canWrite(level)}
+                    classId={classId}
+                    onClassChange={setClassId}
+                  />
+                ),
+              },
+            ]}
+          />
         )}
-
-        <Tabs
-          label="לשוניות מקצועות ושיוך הוראה"
-          defaultValue="assignments"
-          className="w-full"
-          items={[
-            {
-              value: 'subjects',
-              label: 'מקצועות',
-              content: subjects.isError ? null : (
-                <SubjectList subjects={subjects.data?.items} loading={subjects.isLoading} />
-              ),
-            },
-            {
-              value: 'assignments',
-              label: 'שיוך הוראה',
-              content: assignments.isError ? null : (
-                <AssignmentForm
-                  data={assignments.data}
-                  loading={assignments.isLoading}
-                />
-              ),
-            },
-          ]}
-        />
       </div>
     </div>
   );

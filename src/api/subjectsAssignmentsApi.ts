@@ -5,12 +5,6 @@ export type Subject = { id: string; name: string; code: string; grades: string[]
 export type TeachingClass = { id: string; name: string; grade: string };
 export type TeachingTeacher = { id: string; firstName: string; lastName: string };
 export type TeachingAssignment = { classId: string; subjectId: string; teacherId: string };
-export type TeachingAssignmentData = {
-  classes: TeachingClass[];
-  teachers: TeachingTeacher[];
-  assignments: TeachingAssignment[];
-};
-export type CreateSubjectInput = Omit<Subject, 'id'>;
 export type UpdateTeachingAssignmentInput = {
   classId: string;
   subjectId: string;
@@ -23,12 +17,16 @@ export const subjectsAssignmentsApi = apiSlice.injectEndpoints({
       query: () => '/subjects',
       providesTags: ['Subjects'],
     }),
-    createSubject: build.mutation<{ id: string }, CreateSubjectInput>({
-      query: (body) => ({ url: '/subjects', method: 'POST', body }),
-      invalidatesTags: ['Subjects', 'TeachingAssignments'],
+    listClasses: build.query<Page<TeachingClass>, void>({
+      query: () => '/classes',
+      providesTags: ['Classes'],
     }),
-    getTeachingAssignments: build.query<TeachingAssignmentData, void>({
-      query: () => '/teaching-assignments',
+    listTeachers: build.query<Page<TeachingTeacher>, void>({
+      query: () => '/staff',
+      providesTags: ['Staff'],
+    }),
+    getTeachingAssignments: build.query<{ items: TeachingAssignment[] }, string>({
+      query: (classId) => `/classes/${classId}/teaching-assignments`,
       providesTags: ['TeachingAssignments'],
     }),
     updateTeachingAssignment: build.mutation<void, UpdateTeachingAssignmentInput>({
@@ -44,7 +42,8 @@ export const subjectsAssignmentsApi = apiSlice.injectEndpoints({
 
 export const {
   useListSubjectsQuery,
-  useCreateSubjectMutation,
+  useListClassesQuery,
+  useListTeachersQuery,
   useGetTeachingAssignmentsQuery,
   useUpdateTeachingAssignmentMutation,
 } = subjectsAssignmentsApi;
