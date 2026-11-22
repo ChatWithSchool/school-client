@@ -1,7 +1,12 @@
 import type { Assessment, Grade, GradeFeedback, GradeChange } from '../../api/types';
 import { CLASS_ID, STAFF_ID, studentsOf, type MockStudent } from './people';
 
-type Seed = { assessments: Assessment[]; grades: Grade[]; gradeFeedback: GradeFeedback[]; gradeHistory: GradeChange[] };
+type Seed = {
+  assessments: Assessment[];
+  grades: Grade[];
+  gradeFeedback: GradeFeedback[];
+  gradeHistory: GradeChange[];
+};
 
 const ASSESSMENTS: Omit<Assessment, 'gradedCount'>[] = [
   {
