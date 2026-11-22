@@ -103,14 +103,6 @@ export const sharedHandlers = [
     return HttpResponse.json(listOf(shared.grades.filter((g) => g.assessmentId === params.id)));
   }),
 
-  http.get('*/api/grades/:id/history', ({ params, request }) => {
-    const denied = unauthenticated(request);
-    if (denied) return denied;
-    if (!shared.grades.some((g) => g.id === params.id))
-      return err(404, 'NOT_FOUND', 'הציון לא נמצא');
-    return HttpResponse.json(listOf(shared.gradeHistory.filter((h) => h.gradeId === params.id)));
-  }),
-
   // the tags are the labels in Student.tags, so the list is of strings
   http.get('*/api/students/:id/tags', ({ params, request }) => {
     const denied = unauthenticated(request);

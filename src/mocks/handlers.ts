@@ -4,6 +4,7 @@ import { assessmentHandlers } from './assessments';
 import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
+import { gradeHandlers } from './grades';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
 import { teachingHandlers } from './teaching';
@@ -11,10 +12,10 @@ import { teachingHandlers } from './teaching';
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
  *
- * The GET handlers for the shared collections (rooms, events, lessons, teaching assignments,
- * invites, assessments, grades, student tags, attendance and attendance alerts) already exist in
- * ./shared/handlers.ts. Do not add them again here: add only the write handlers (POST, PUT,
- * PATCH, DELETE) of your own screen, and change the data in ./shared so the GET handlers see it.
+ * The GET handlers for shared collections (rooms, events, lessons, teaching assignments, invites,
+ * assessments, grades, student tags, attendance and attendance alerts) already exist in
+ * ./shared/handlers.ts. Screen-specific endpoints such as grade history live in their own file.
+ * Add only the write handlers (POST, PUT, PATCH, DELETE) of your screen here.
  */
 const MOCK_INSTITUTION = {
   id: 'inst-1',
@@ -116,4 +117,5 @@ export const handlers = [
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
+  ...gradeHandlers,
 ];

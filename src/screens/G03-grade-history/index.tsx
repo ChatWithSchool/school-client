@@ -1,20 +1,16 @@
-import { apiSlice } from '../../api/apiSlice';
+import { useGetMeQuery } from '../../api/authApi';
+import { useGetGradeHistoryQuery } from '../../api/gradesApi';
 import { PageHeader, Table, type TableColumn } from '../../components/ui';
-import { ErrorState, LoadingSkeleton } from '../../components/StateViews';
+import {
+  EmptyState,
+  ErrorState,
+  ForbiddenState,
+  LoadingSkeleton,
+} from '../../components/StateViews';
+import { usePermission } from '../../features/auth/usePermission';
 import type { GradeChange } from '../../api/types';
 
 const GRADE_ID = 'grd-asm-1-stu-17';
-
-const gradeHistoryApi = apiSlice.injectEndpoints({
-  endpoints: (build) => ({
-    getGradeHistory: build.query<{ items: GradeChange[] }, string>({
-      query: (gradeId) => `/grades/${gradeId}/history`,
-    }),
-  }),
-  overrideExisting: false,
-});
-
-const { useGetGradeHistoryQuery } = gradeHistoryApi;
 
 const columns: TableColumn<GradeChange>[] = [
   {
@@ -23,7 +19,11 @@ const columns: TableColumn<GradeChange>[] = [
     className: 'w-44',
     cell: (row) => {
       const d = new Date(row.createdAt);
-      const date = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const date = d.toLocaleDateString('he-IL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
       const time = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
       return <span className="text-body text-fg">{`${date} · ${time}`}</span>;
     },
@@ -55,20 +55,20 @@ const columns: TableColumn<GradeChange>[] = [
 ];
 
 export default function Screen() {
-  const { data, isLoading, isError, refetch } = useGetGradeHistoryQuery(GRADE_ID);
+  const level = usePermission('G03');
+  const { data: me } = useGetMeQuery();
+  const { data, isLoading, isError, error, refetch } = useGetGradeHistoryQuery(GRADE_ID);
+
+  if ((error as { status?: number } | undefined)?.status === 403 || (me && !level))
+    return <ForbiddenState />;
 
   return (
-    <div className="space-y-4 p-4" dir="rtl">
-      <PageHeader
-        title="היסטוריית שינויי ציון"
-        subtitle="תלמיד · מתמטיקה · מבחן מסכם"
-      />
+    <div className="space-y-4 p-4">
+      <PageHeader title="היסטוריית שינויי ציון" subtitle="תלמיד · מתמטיקה · מבחן מסכם" />
 
       <section className="rounded-xl border border-line bg-surface p-3 shadow-xs">
         {isLoading && <LoadingSkeleton rows={4} />}
-        {isError && (
-          <ErrorState message="לא ניתן לטעון את ההיסטוריה." onRetry={refetch} />
-        )}
+        {isError && <ErrorState message="לא ניתן לטעון את ההיסטוריה." onRetry={refetch} />}
         {!isLoading && !isError && (
           <Table
             caption="היסטוריית שינויי ציון"
@@ -77,11 +77,7 @@ export default function Screen() {
             columns={columns}
             className="w-full"
             wrapperClassName="overflow-x-auto"
-            empty={
-              <div className="p-4 text-center text-body text-fg-secondary">
-                אין נתוני היסטוריה להצגה.
-              </div>
-            }
+            empty={<EmptyState title="אין נתוני היסטוריה להצגה." />}
           />
         )}
       </section>
