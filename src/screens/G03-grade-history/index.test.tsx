@@ -14,8 +14,8 @@ describe('G03 grade history screen', () => {
 
     const updatedRow = await screen.findByRole('row', { name: /85/ });
     expect(within(updatedRow).getByText('עמית כהן')).toBeInTheDocument();
-    expect(screen.getByText('78')).toBeInTheDocument();
-    expect(screen.getByText('85')).toBeInTheDocument();
+    expect(within(updatedRow).getByText('78')).toBeInTheDocument();
+    expect(within(updatedRow).getByText('85')).toBeInTheDocument();
   });
 
   it('shows an empty state when the grade has no history', async () => {
