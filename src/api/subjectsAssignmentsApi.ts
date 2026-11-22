@@ -27,7 +27,7 @@ export const subjectsAssignmentsApi = apiSlice.injectEndpoints({
     }),
     getTeachingAssignments: build.query<{ items: TeachingAssignment[] }, string>({
       query: (classId) => `/classes/${classId}/teaching-assignments`,
-      providesTags: ['TeachingAssignments'],
+      providesTags: ['Classes'],
     }),
     updateTeachingAssignment: build.mutation<void, UpdateTeachingAssignmentInput>({
       query: ({ classId, ...body }) => ({
@@ -35,7 +35,7 @@ export const subjectsAssignmentsApi = apiSlice.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: ['TeachingAssignments'],
+      invalidatesTags: ['Classes'],
     }),
   }),
 });
