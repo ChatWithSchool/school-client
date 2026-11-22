@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { shared } from '../../mocks/shared';
 import { renderWithProviders } from '../../test/utils';
 import Screen from './index';
@@ -12,7 +12,8 @@ describe('G03 grade history screen', () => {
 
     expect(screen.getByRole('heading', { name: 'היסטוריית שינויי ציון' })).toBeInTheDocument();
 
-    expect(await screen.findByText('עמית כהן')).toBeInTheDocument();
+    const updatedRow = await screen.findByRole('row', { name: /85/ });
+    expect(within(updatedRow).getByText('עמית כהן')).toBeInTheDocument();
     expect(screen.getByText('78')).toBeInTheDocument();
     expect(screen.getByText('85')).toBeInTheDocument();
   });
