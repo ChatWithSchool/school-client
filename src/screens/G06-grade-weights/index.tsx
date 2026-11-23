@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, PageHeader, Select, Table, type TableColumn } from '../../components/ui';
-import { ErrorState, LoadingSkeleton } from '../../components/StateViews';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
 import { useToast } from '../../components/ui';
+import { usePermission, canWrite } from '../../features/auth/usePermission';
 import { CLASSES, shared, type GradingWeight } from '../../mocks/shared';
 
 const TERMS = [
@@ -23,6 +24,8 @@ type WeightRow = {
 
 export default function G06GradeWeights() {
   const toast = useToast();
+  const permission = usePermission('G06');
+  const editable = canWrite(permission);
   const [classId, setClassId] = useState('');
   const [term, setTerm] = useState('א');
   const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'error'>('idle');
@@ -117,6 +120,9 @@ export default function G06GradeWeights() {
     },
   ];
 
+  if (permission === undefined) return <LoadingSkeleton />;
+  if (!permission) return <ForbiddenState />;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="משקלים לציון סופי" />
@@ -155,6 +161,10 @@ export default function G06GradeWeights() {
 
       {classId && status === 'loading' && <LoadingSkeleton rows={4} />}
 
+      {classId && status !== 'loading' && status !== 'error' && rows.length === 0 && (
+        <p className="text-body text-fg-secondary">לא נמצאו משקלים לכיתה ומחצית שנבחרו.</p>
+      )}
+
       {classId && status !== 'loading' && status !== 'error' && rows.length > 0 && (
         <>
           {isClosed && (
@@ -183,7 +193,7 @@ export default function G06GradeWeights() {
 
           {validationError && <Alert tone="danger">{validationError}</Alert>}
 
-          {!isClosed && (
+          {!isClosed && editable && (
             <div className="flex gap-3">
               <Button onClick={handleSave} loading={status === 'saving'}>
                 שמור
