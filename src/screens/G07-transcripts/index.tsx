@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, PageHeader, Select } from '../../components/ui';
-import { ErrorState, LoadingSkeleton } from '../../components/StateViews';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
+import { usePermission } from '../../features/auth/usePermission';
 import { CLASSES, SUBJECTS, shared } from '../../mocks/shared';
 
 const TERMS = [
@@ -97,7 +98,11 @@ function TranscriptPreview({ data }: { data: TranscriptData }) {
             <tr key={row.subjectId} className="border-b border-line last:border-0">
               <td className="py-2 pe-4">{row.subjectName}</td>
               <td className="py-2 text-center">
-                {row.finalGrade !== null ? row.finalGrade : <span className="text-fg-muted">—</span>}
+                {row.finalGrade !== null ? (
+                  row.finalGrade
+                ) : (
+                  <span className="text-fg-muted">—</span>
+                )}
               </td>
             </tr>
           ))}
@@ -119,6 +124,7 @@ function TranscriptPreview({ data }: { data: TranscriptData }) {
 }
 
 export default function G07Transcripts() {
+  const permission = usePermission('G07');
   const [term, setTerm] = useState('א');
   const [selection, setSelection] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -156,6 +162,9 @@ export default function G07Transcripts() {
     return () => clearTimeout(timer);
   }, [selection, term]);
 
+  if (permission === undefined) return <LoadingSkeleton />;
+  if (!permission) return <ForbiddenState />;
+
   const allMissing = transcripts.flatMap((t) =>
     t.missingGrades.map((m) => ({ ...m, studentName: t.studentName })),
   );
@@ -171,7 +180,11 @@ export default function G07Transcripts() {
       `}</style>
 
       <div className="flex flex-col gap-6">
-        <PageHeader title="הפקת תעודות" className="no-print" />
+        <PageHeader
+          title="הפקת תעודות"
+          breadcrumbs={[{ label: 'ציונים' }, { label: 'הפקת תעודות' }]}
+          className="no-print"
+        />
 
         <div className="no-print flex flex-wrap gap-4">
           <Select
@@ -236,6 +249,9 @@ export default function G07Transcripts() {
                 title={!canPrint ? 'לא ניתן להפיק תעודה עם ציונים חסרים' : undefined}
               >
                 {transcripts.length > 1 ? 'הדפס תעודות לכיתה' : 'הדפס תעודה'}
+              </Button>
+              <Button variant="secondary" disabled>
+                הפק לכל הכיתה (קובץ מאוחד)
               </Button>
             </div>
           </>
