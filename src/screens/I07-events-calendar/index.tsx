@@ -1,257 +1,217 @@
 import { useState } from 'react';
+import { useGetMeQuery } from '../../api/authApi';
+import { useCreateEventMutation, useListEventsQuery } from '../../api/eventsApi';
+import type { SchoolEvent } from '../../api/types';
+import { useAppSelector } from '../../app/hooks';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
 import {
+  Alert,
   Badge,
   Button,
-  Card,
   DatePicker,
+  EmptyState,
   Modal,
+  PageHeader,
   Select,
+  Table,
   TextField,
   type BadgeTone,
 } from '../../components/ui';
+import { canWrite, usePermission } from '../../features/auth/usePermission';
 
-const eventTypes = [
-  { value: 'holiday', label: 'חג' },
-  { value: 'event', label: 'אירוע' },
-  { value: 'parent-day', label: 'ימי הורים' },
-  { value: 'vacation', label: 'חופשה' },
+type EventType = SchoolEvent['type'];
+
+const eventTypes: { value: EventType; label: string; tone: BadgeTone }[] = [
+  { value: 'holiday', label: 'חג', tone: 'success' },
+  { value: 'event', label: 'אירוע', tone: 'primary' },
+  { value: 'parents_day', label: 'ימי הורים', tone: 'warning' },
+  { value: 'vacation', label: 'חופשה', tone: 'info' },
 ];
 
-const scopeOptions = [
-  { value: 'all', label: 'כל המוסד' },
-  { value: 'primary', label: 'יסודי' },
-  { value: 'middle', label: 'חטיבת ביניים' },
-  { value: 'high', label: 'תיכון' },
-];
+const gradeOptions = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב'].map(
+  (grade) => ({
+    value: grade,
+    label: grade,
+  }),
+);
 
-const initialEvents = [
-  { id: '1', title: 'פסח', type: 'holiday', start: '2026-04-02', end: '2026-04-06', scope: 'all' },
-  { id: '2', title: 'יום הורים', type: 'parent-day', start: '2026-03-18', end: '2026-03-18', scope: 'primary' },
-  { id: '3', title: 'חופשת חנוכה', type: 'vacation', start: '2026-12-24', end: '2026-12-31', scope: 'all' },
-  { id: '4', title: 'ערב בית ספר', type: 'event', start: '2026-05-14', end: '2026-05-14', scope: 'all' },
-];
-
-type EventTypeValue = (typeof eventTypes)[number]['value'];
-
-const typePalette: Record<EventTypeValue, { badge: BadgeTone; cell: string; label: string }> = {
-  holiday: { badge: 'success', cell: 'bg-success-50 border-success-200', label: 'חג' },
-  event: { badge: 'primary', cell: 'bg-primary-50 border-primary-200', label: 'אירוע' },
-  'parent-day': { badge: 'warning', cell: 'bg-warning-50 border-warning-200', label: 'ימי הורים' },
-  vacation: { badge: 'info', cell: 'bg-info-50 border-info-200', label: 'חופשה' },
+type FormState = {
+  title: string;
+  type: EventType;
+  start: string;
+  end: string;
+  gradeLevels: string[];
 };
 
-const weekdayNames = ['א', 'ב', 'ג', 'ד', 'ה', 'ש', 'ש'];
+const pad = (value: number) => String(value).padStart(2, '0');
 
-const monthDays = Array.from({ length: 35 }, (_, index) => index + 1);
+/** YYYY-MM-DD לפי השעון המקומי (toISOString היה מזיז יום אחורה בישראל) */
+const toDateString = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+const fromDateString = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const formatDate = (value: string) => value.split('-').reverse().join('/');
+
+const emptyForm = (): FormState => {
+  const today = toDateString(new Date());
+  return { title: '', type: 'event', start: today, end: today, gradeLevels: [] };
+};
+
+const columns = [
+  { key: 'title', header: 'כותרת', cell: (event: SchoolEvent) => event.title },
+  {
+    key: 'type',
+    header: 'סוג',
+    cell: (event: SchoolEvent) => {
+      const info = eventTypes.find((item) => item.value === event.type);
+      return <Badge tone={info?.tone ?? 'neutral'}>{info?.label ?? event.type}</Badge>;
+    },
+  },
+  {
+    key: 'start',
+    header: 'תאריך התחלה',
+    cell: (event: SchoolEvent) => formatDate(event.startDate),
+  },
+  { key: 'end', header: 'תאריך סיום', cell: (event: SchoolEvent) => formatDate(event.endDate) },
+  {
+    key: 'scope',
+    header: 'חל על',
+    cell: (event: SchoolEvent) =>
+      event.gradeLevels.length ? event.gradeLevels.join(', ') : 'כל המוסד',
+  },
+];
 
 export default function Screen() {
-  const [events, setEvents] = useState(initialEvents);
+  const level = usePermission('I07');
+  const canManage = canWrite(level);
+  // usePermission מחזיר undefined גם בזמן הטעינה וגם כשאין הרשאה. הבקשה ל-me משותפת (RTK Query) ואינה נשלחת פעמיים.
+  const token = useAppSelector((state) => state.auth.token);
+  const { isLoading: loadingPermissions } = useGetMeQuery(undefined, { skip: !token });
+
+  const { data, isError, refetch } = useListEventsQuery();
+  const [createEvent] = useCreateEventMutation();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    title: '',
-    type: 'holiday',
-    start: '2026-03-10',
-    end: '2026-03-10',
-    scope: 'all',
-  });
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [titleError, setTitleError] = useState('');
+  const [formError, setFormError] = useState('');
 
-  const monthLabel = 'מרס 2026';
+  if (loadingPermissions) {
+    return <LoadingSkeleton />;
+  }
 
-  const openNewEvent = () => {
-    setEditingId(null);
-    setForm({ title: '', type: 'holiday', start: '2026-03-10', end: '2026-03-10', scope: 'all' });
+  if (level === undefined) {
+    return <ForbiddenState />;
+  }
+
+  const updateForm = (patch: Partial<FormState>) =>
+    setForm((current) => ({ ...current, ...patch }));
+
+  const openForm = () => {
+    setForm(emptyForm());
+    setTitleError('');
+    setFormError('');
     setIsFormOpen(true);
   };
 
-  const openEditEvent = (event: (typeof events)[number]) => {
-    setEditingId(event.id);
-    setForm({
-      title: event.title,
-      type: event.type,
-      start: event.start,
-      end: event.end,
-      scope: event.scope,
-    });
-    setIsFormOpen(true);
-  };
+  const saveEvent = async () => {
+    const title = form.title.trim();
+    setTitleError('');
+    setFormError('');
 
-  const saveEvent = () => {
-    if (!form.title.trim()) return;
-
-    if (editingId) {
-      setEvents((current) =>
-        current.map((event) => (event.id === editingId ? { ...event, ...form } : event)),
-      );
-    } else {
-      setEvents((current) => [{
-        id: crypto.randomUUID(),
-        title: form.title.trim(),
-        type: form.type,
-        start: form.start,
-        end: form.end,
-        scope: form.scope,
-      }, ...current]);
+    if (title.length < 2) {
+      setTitleError('חובה להזין כותרת (לפחות 2 תווים)');
+      return false;
     }
 
-    setIsFormOpen(false);
-  };
+    if (!form.start || !form.end) {
+      setFormError('חובה לבחור תאריך התחלה ותאריך סיום');
+      return false;
+    }
 
-  const deleteEvent = (id: string) => {
-    setEvents((current) => current.filter((event) => event.id !== id));
+    if (form.end < form.start) {
+      setFormError('תאריך הסיום לא יכול להיות לפני תאריך ההתחלה');
+      return false;
+    }
+
+    try {
+      await createEvent({
+        title,
+        type: form.type,
+        startDate: form.start,
+        endDate: form.end,
+        gradeLevels: form.gradeLevels,
+      }).unwrap();
+      await refetch();
+      return true;
+    } catch {
+      setFormError('אירעה שגיאה בשמירה. נסו שוב.');
+      return false;
+    }
   };
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-h1 text-fg">יומן בית ספרי</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="M">
-            חודש קודם
-          </Button>
-          <Button variant="secondary" size="M">
-            {monthLabel}
-          </Button>
-          <Button size="M" onClick={openNewEvent}>
-            הוספת אירוע
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        title="יומן בית ספרי"
+        subtitle="חגים, אירועים, ימי הורים וחופשות"
+        actions={canManage ? <Button onClick={openForm}>הוספת אירוע</Button> : undefined}
+      />
 
-      <Card className="overflow-hidden border border-line bg-surface p-0 shadow-sm">
-        <div className="border-b border-line bg-subtle px-5 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-body-strong text-fg">
-              <span>{monthLabel}</span>
-            </div>
-            <div className="flex items-center gap-2 text-body text-fg-secondary">
-              <span>קיימים {events.length} אירועים</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-0 xl:grid-cols-2">
-          <div className="border-b border-line xl:border-b-0 xl:border-e">
-            <div className="grid grid-cols-7 border-b border-line bg-subtle">
-              {weekdayNames.map((label, index) => (
-                <div key={`${label}-${index}`} className="px-3 py-3 text-center text-label text-fg-secondary">
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7">
-              {monthDays.map((day, index) => {
-                const event = events[index % events.length];
-                const palette = typePalette[event.type] ?? typePalette.holiday;
-                const isCurrentDay = day === 10 || day === 18 || day === 24;
-
-                return (
-                  <button
-                    key={`${day}-${index}`}
-                    type="button"
-                    className={[
-                      'relative min-h-24 border-b border-e border-line p-2 text-start transition hover:bg-subtle',
-                      day > 28 ? 'opacity-60' : '',
-                      isCurrentDay ? 'bg-primary-50' : 'bg-surface',
-                    ].join(' ')}
-                    onClick={openNewEvent}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-body-strong text-fg">{day}</span>
-                      {isCurrentDay && <Badge tone="primary" size="S">יום מיוחד</Badge>}
-                    </div>
-                    {event && (
-                      <div className={['mt-2 rounded-md border px-2 py-1 text-label', palette.cell].join(' ')}>
-                        {event.title}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-5 p-5">
-            <div>
-              <h2 className="mb-3 text-h2 text-fg">מקרא סוגי אירועים</h2>
-              <div className="space-y-2">
-                {eventTypes.map((item) => (
-                  <div key={item.value} className="flex items-center justify-between gap-2 rounded-md bg-subtle px-2 py-2">
-                    <span className="text-body text-fg">{item.label}</span>
-                    <Badge tone={typePalette[item.value as EventTypeValue].badge} size="S">
-                      {item.label}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="mb-3 text-h2 text-fg">אירועים קרובים</h2>
-              <div className="space-y-2">
-                {events.map((event) => (
-                  <div key={event.id} className="rounded-md border border-line bg-page p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-body-strong text-fg">{event.title}</span>
-                      <Badge tone={typePalette[event.type as EventTypeValue].badge} size="S">
-                        {typePalette[event.type as EventTypeValue].label}
-                      </Badge>
-                    </div>
-                    <div className="mb-2 text-body text-fg-secondary">
-                      {event.start} – {event.end}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="secondary" size="S" onClick={() => openEditEvent(event)}>
-                        עריכה
-                      </Button>
-                      <Button variant="danger" size="S" onClick={() => deleteEvent(event.id)}>
-                        מחיקה
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+      {isError ? (
+        <ErrorState message="אירעה שגיאה בטעינת האירועים. נסו שוב." />
+      ) : (
+        <Table
+          caption="רשימת אירועי בית הספר"
+          rows={data?.items}
+          getRowId={(event) => event.id}
+          columns={columns}
+          empty={<EmptyState variant="first-use" title="אין אירועים ביומן" />}
+        />
+      )}
 
       <Modal
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        title={editingId ? 'עריכת אירוע' : 'הוספת אירוע'}
-        description="הגדרו את סוג האירוע, התאריכים וההיקף שלו."
+        title="הוספת אירוע"
+        description="הגדירו את סוג האירוע, התאריכים וההיקף שלו."
         size="M"
-        confirmLabel={editingId ? 'שמור' : 'הוסף אירוע'}
-        cancelLabel="ביטול"
+        footer="double"
+        confirmLabel="הוסף אירוע"
         onConfirm={saveEvent}
       >
         <div className="space-y-4">
           <TextField
             label="כותרת האירוע"
+            required
             value={form.title}
-            onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+            onChange={(event) => updateForm({ title: event.target.value })}
             placeholder="לדוגמה: חופשת פסח"
+            error={titleError || undefined}
           />
 
           <div className="grid gap-4 md:grid-cols-2">
             <Select
               label="סוג אירוע"
+              required
               options={eventTypes}
               value={form.type}
-              onValueChange={(value) => setForm((current) => ({ ...current, type: value }))}
+              onValueChange={(value) => updateForm({ type: value as EventType })}
               placeholder="בחרו סוג"
             />
 
             <Select
-              label="חל על"
-              options={scopeOptions}
-              value={form.scope}
-              onValueChange={(value) => setForm((current) => ({ ...current, scope: value }))}
-              placeholder="בחרו היקף"
+              label="חל על שכבות"
+              multi
+              options={gradeOptions}
+              value={form.gradeLevels}
+              onValueChange={(value) => updateForm({ gradeLevels: value })}
+              placeholder="כל המוסד"
+              hint="אם לא נבחרה שכבה, האירוע חל על כל המוסד."
             />
           </div>
 
@@ -259,27 +219,19 @@ export default function Screen() {
             <DatePicker
               mode="single"
               label="תאריך התחלה"
-              value={form.start ? new Date(`${form.start}T00:00:00`) : null}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  start: value ? value.toISOString().slice(0, 10) : '',
-                }))
-              }
+              value={form.start ? fromDateString(form.start) : null}
+              onChange={(value) => updateForm({ start: value ? toDateString(value) : '' })}
             />
 
             <DatePicker
               mode="single"
               label="תאריך סיום"
-              value={form.end ? new Date(`${form.end}T00:00:00`) : null}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  end: value ? value.toISOString().slice(0, 10) : '',
-                }))
-              }
+              value={form.end ? fromDateString(form.end) : null}
+              onChange={(value) => updateForm({ end: value ? toDateString(value) : '' })}
             />
           </div>
+
+          {formError ? <Alert tone="danger">{formError}</Alert> : null}
         </div>
       </Modal>
     </div>
