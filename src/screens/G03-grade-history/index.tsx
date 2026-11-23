@@ -56,10 +56,13 @@ const columns: TableColumn<GradeChange>[] = [
 
 export default function Screen() {
   const level = usePermission('G03');
-  const { data: me } = useGetMeQuery();
-  const { data, isLoading, isError, error, refetch } = useGetGradeHistoryQuery(GRADE_ID);
+  const { isLoading: meLoading } = useGetMeQuery();
+  const forbidden = !meLoading && !level;
+  const { data, isLoading, isError, error, refetch } = useGetGradeHistoryQuery(GRADE_ID, {
+    skip: meLoading || forbidden,
+  });
 
-  if ((error as { status?: number } | undefined)?.status === 403 || (me && !level))
+  if (forbidden || (error as { status?: number } | undefined)?.status === 403)
     return <ForbiddenState />;
 
   return (

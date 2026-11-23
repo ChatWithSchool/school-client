@@ -7,6 +7,12 @@ const MANAGER = 'mock.yuval.mizrahi@school.example';
 const PARENT = 'mock.amit.biton@school.example';
 
 describe('G03 grade history screen', () => {
+  const originalHistory = [...shared.gradeHistory];
+
+  afterEach(() => {
+    shared.gradeHistory.splice(0, shared.gradeHistory.length, ...originalHistory);
+  });
+
   it('renders the grade history title and rows with author information', async () => {
     renderWithProviders(<Screen />, { token: MANAGER });
 
