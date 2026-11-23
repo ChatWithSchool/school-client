@@ -187,9 +187,7 @@ export default function Screen() {
         <div className="px-6 pb-6 pt-5">
           {!isConfirm ? (
             <>
-              <h1 className="mb-5 text-3xl font-bold leading-none text-fg">
-                אשף הקמת מוסד: מבנה בית הספר
-              </h1>
+              <h1 className="mb-5 text-h1 text-fg">אשף הקמת מוסד: מבנה בית הספר</h1>
 
               <Card padding="M" className="mb-6 bg-page">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -246,13 +244,13 @@ export default function Screen() {
               </Card>
 
               <section>
-                <h2 className="mb-3 text-xl font-bold text-fg">תצוגה מקדימה</h2>
+                <h2 className="mb-3 text-h2 text-fg">תצוגה מקדימה</h2>
                 <LevelsTable rows={preview} />
               </section>
             </>
           ) : (
             <>
-              <h1 className="mb-5 text-3xl font-bold leading-none text-fg">אשף הקמת מוסד: אישור</h1>
+              <h1 className="mb-5 text-h1 text-fg">אשף הקמת מוסד: אישור</h1>
 
               {status === 'success' ? (
                 <div role="status" className="text-body text-fg">
