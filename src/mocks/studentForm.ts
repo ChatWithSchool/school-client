@@ -1,10 +1,9 @@
-import { seedStudents, CLASSES } from './shared/people';
-
-export interface StudentFormData {
+export interface StudentFormRecord {
+  id: string;
   firstName: string;
   lastName: string;
   nationalId: string;
-  birthDate: Date | null;
+  birthDate: string;
   className: string;
   phone: string;
   phoneExtra: string;
@@ -14,45 +13,62 @@ export interface StudentFormData {
   tags: string[];
 }
 
-export const EMPTY_STUDENT_FORM: StudentFormData = {
-  firstName: '',
-  lastName: '',
-  nationalId: '',
-  birthDate: null,
-  className: '',
-  phone: '',
-  phoneExtra: '',
-  parentEmail: '',
-  address: '',
-  notes: '',
-  tags: [],
+export const CLASS_OPTIONS = [
+  { value: '', label: 'בחרו כיתה' },
+  { value: 'ז1', label: 'ז1' },
+  { value: 'ז2', label: 'ז2' },
+  { value: 'ח1', label: 'ח1' },
+  { value: 'ח2', label: 'ח2' },
+  { value: 'ח3', label: 'ח3' },
+  { value: 'ט1', label: 'ט1' },
+];
+
+export const TAG_OPTIONS = ['חדש', 'מעקב', 'תמיכה', 'חוג'];
+
+export const EXISTING_STUDENT_IDS = ['123456782', '987654321'];
+export const EXISTING_PARENT_EMAILS = ['amit.biton@example.com'];
+
+export const MOCK_STUDENTS_BY_ID: Record<string, StudentFormRecord> = {
+  '1': {
+    id: '1',
+    firstName: 'נועם',
+    lastName: 'ביטון',
+    nationalId: '123456782',
+    birthDate: '2012-01-01',
+    className: 'ח1',
+    phone: '050-000-0000',
+    phoneExtra: '',
+    parentEmail: 'amit.biton@example.com',
+    address: '',
+    notes: '',
+    tags: ['חדש'],
+  },
+  '2': {
+    id: '2',
+    firstName: 'יובל',
+    lastName: 'קליין',
+    nationalId: '234567891',
+    birthDate: '2012-04-05',
+    className: 'ח1',
+    phone: '050-000-0001',
+    phoneExtra: '',
+    parentEmail: '',
+    address: '',
+    notes: '',
+    tags: [],
+  },
+  '3': {
+    id: '3',
+    firstName: 'עדי',
+    lastName: 'פרץ',
+    nationalId: '345678912',
+    birthDate: '2011-07-12',
+    className: 'ח2',
+    phone: '050-000-0002',
+    phoneExtra: '',
+    parentEmail: '',
+    address: '',
+    notes: '',
+    tags: ['מעקב'],
+  },
 };
-
-// תעודות זהות תקינות עם ספרת ביקורת לבדיקת כפילות (למשל 123456782 ו-246813571)
-export const EXISTING_NATIONAL_IDS: string[] = ['123456782', '246813571'];
-export const EXISTING_PARENT_EMAILS: string[] = ['amit.biton@example.com'];
-
-const CLASS_NAME_BY_ID: Record<string, string> = Object.fromEntries(
-  CLASSES.map((cls) => [cls.id, cls.name]),
-);
-
-const SEEDED_STUDENTS = seedStudents();
-
-export const MOCK_STUDENTS_BY_ID: Record<string, StudentFormData> = Object.fromEntries(
-  SEEDED_STUDENTS.map((student, index) => [
-    student.id,
-    {
-      firstName: student.firstName,
-      lastName: student.lastName,
-      nationalId: index === 0 ? '123456782' : index === 1 ? '246813571' : '',
-      birthDate: new Date(2012, index % 12, (index % 27) + 1),
-      className: CLASS_NAME_BY_ID[student.classId] ?? '',
-      phone: `050-000-${String(index).padStart(4, '0')}`,
-      phoneExtra: '',
-      parentEmail: index === 0 ? 'amit.biton@example.com' : '',
-      address: '',
-      notes: '',
-      tags: [...student.tags],
-    },
-  ]),
-);
