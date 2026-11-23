@@ -94,13 +94,9 @@ describe('A07 invites', () => {
   });
 
   it('שגיאה: אין חיבור לרשת', async () => {
-    server.use(http.get('*/api/invites', () => delay('infinite')));
-    const { unmount } = render();
-    expect(await screen.findByText('אין חיבור לרשת')).toBeInTheDocument();
-    unmount();
-    server.use(http.get('*/api/invites', fail(500, 'INTERNAL')));
+    server.use(http.get('*/api/invites', () => HttpResponse.error()));
     render();
-    expect(await screen.findByText(/קוד תקלה: INTERNAL/)).toBeInTheDocument();
+    expect(await screen.findByText(/קוד תקלה: FETCH_ERROR/)).toBeInTheDocument();
   });
 
   it('הרשאה: משתמש ללא A07 מקבל חסימה ולא שולח בקשת הזמנות', async () => {

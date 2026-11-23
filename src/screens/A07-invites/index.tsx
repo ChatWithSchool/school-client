@@ -14,11 +14,13 @@ import {
   EmptyState,
   useToast,
 } from '../../components/ui';
-import { ErrorState, ForbiddenState } from '../../components/StateViews';
+import { LoadingSkeleton, ErrorState, ForbiddenState } from '../../components/StateViews';
 import type { TableColumn } from '../../components/ui';
 import type { ApiErrorBody, Invite, RoleKey } from '../../api/types';
 import { errorMessage, fieldErrors } from '../../api/errors';
-import { canWrite, usePermission } from '../../features/auth/usePermission';
+import { useGetMeQuery } from '../../api/authApi';
+import { useAppSelector } from '../../app/hooks';
+import { canWrite } from '../../features/auth/usePermission';
 import {
   useCancelInviteMutation,
   useCreateInviteMutation,
@@ -50,7 +52,11 @@ const ACTIONS = {
 const KINDS = ['resend', 'cancel'] as const;
 
 export default function InvitesScreen() {
-  const level = usePermission('A07');
+  const token = useAppSelector((state) => state.auth.token);
+  const { data: me, isLoading: isPermissionLoading } = useGetMeQuery(undefined, {
+    skip: !token,
+  });
+  const level = me?.permissions.A07;
   const canAccess = canWrite(level);
   const toast = useToast();
   const [, setParams] = useSearchParams();
@@ -252,12 +258,12 @@ export default function InvitesScreen() {
     </div>
   );
 
-  if (level !== undefined && !canAccess) return <ForbiddenState />;
-  if (level === undefined) return null;
+  if (isPermissionLoading) return <LoadingSkeleton />;
   if (code === 'FORBIDDEN' || code === 403) return <ForbiddenState />;
+  if (!me || !canAccess) return <ForbiddenState />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-subtle p-8 space-y-8" dir="rtl">
+    <div className="flex flex-col bg-subtle p-8 space-y-8">
       <PageHeader title="הזמנת משתמשים והזמנות ממתינות" />
 
       <Tabs
