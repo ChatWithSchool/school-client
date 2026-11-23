@@ -160,7 +160,6 @@ export const handlers = [
       assignedBy: userOf(request)?.email ?? '',
     });
   }),
-
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
