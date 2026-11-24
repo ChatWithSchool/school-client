@@ -16,6 +16,7 @@ import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
 import { teachingHandlers } from './teaching';
+import { institutionHandlers } from './institutions';
 
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
@@ -161,6 +162,7 @@ export const handlers = [
     });
   }),
 
+  ...institutionHandlers,
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
