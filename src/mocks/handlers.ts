@@ -11,6 +11,7 @@ import {
   t03UncoveredLessons,
 } from './data';
 import { authz, err, userOf } from './http';
+import { inviteHandlers } from './invites';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
@@ -121,6 +122,7 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  ...inviteHandlers,
   http.get('*/api/staff/available', ({ request }) => {
     const a = authz(request, 'T03', 'read');
     if (a.res) return a.res;
