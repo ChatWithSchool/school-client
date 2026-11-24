@@ -1,47 +1,49 @@
 import { seedAttendance, seedAttendanceAlerts } from './attendance';
 import { seedGrading } from './grades';
-import { CLASSES, seedInvites, seedStudents } from './people';
+import { seedInvites, seedStudents, SUBJECTS } from './people';
 import { seedEvents, seedLessons, seedRooms, seedTeachingAssignments } from './timetable';
 
 export { CLASSES, CLASS_ID, STAFF, STAFF_ID, SUBJECTS } from './people';
 export type { MockClass, MockStaff, MockStudent, MockSubject } from './people';
 
+export type WeightEntry = { type: 'exam' | 'quiz' | 'assignment'; percent: number };
+
 export type GradingWeight = {
   id: string;
-  classId: string;
-  term: string;
-  assessmentType: 'exam' | 'quiz' | 'assignment';
-  weight: number;
+  gradeLevel: string;
+  subjectId: string;
+  termId: string;
+  weights: WeightEntry[];
 };
 
-export type TermStatus = { classId: string; term: string; closed: boolean };
+export type TermStatus = { termId: string; closed: boolean };
 
-const ASSESSMENT_TYPES: GradingWeight['assessmentType'][] = ['exam', 'quiz', 'assignment'];
-const DEFAULT_WEIGHTS: Record<GradingWeight['assessmentType'], number> = {
-  exam: 60,
-  quiz: 20,
-  assignment: 20,
-};
+const TERMS = [
+  { id: 'term-a', closed: false },
+  { id: 'term-b', closed: true },
+];
 
 function seedGradingWeights(): GradingWeight[] {
-  return CLASSES.flatMap((cls) =>
-    ['א', 'ב'].flatMap((term) =>
-      ASSESSMENT_TYPES.map((type) => ({
-        id: `gw-${cls.id}-${term}-${type}`,
-        classId: cls.id,
-        term,
-        assessmentType: type,
-        weight: DEFAULT_WEIGHTS[type],
+  const gradeLevels = ['ז', 'ח', 'ט'];
+  return gradeLevels.flatMap((gradeLevel) =>
+    SUBJECTS.flatMap((subject) =>
+      TERMS.map((term) => ({
+        id: `gw-${gradeLevel}-${subject.id}-${term.id}`,
+        gradeLevel,
+        subjectId: subject.id,
+        termId: term.id,
+        weights: [
+          { type: 'exam' as const, percent: 60 },
+          { type: 'quiz' as const, percent: 20 },
+          { type: 'assignment' as const, percent: 20 },
+        ],
       })),
     ),
   );
 }
 
 function seedTermStatuses(): TermStatus[] {
-  return CLASSES.flatMap((cls) => [
-    { classId: cls.id, term: 'א', closed: false },
-    { classId: cls.id, term: 'ב', closed: true },
-  ]);
+  return TERMS.map((t) => ({ termId: t.id, closed: t.closed }));
 }
 
 function seed() {

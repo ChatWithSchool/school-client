@@ -1,171 +1,188 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, PageHeader, Select, Table, type TableColumn } from '../../components/ui';
+import { useAppSelector } from '../../app/hooks';
+import { useGetMeQuery } from '../../api/authApi';
+import { useGetGradingWeightsQuery, usePutGradingWeightsMutation } from '../../api/gradingApi';
+import type { WeightEntry } from '../../api/gradingApi';
+import { errorMessage } from '../../api/errors';
+import { canWrite } from '../../features/auth/usePermission';
+import {
+  Alert,
+  Button,
+  Card,
+  PageHeader,
+  Select,
+  Table,
+  TextField,
+  type TableColumn,
+} from '../../components/ui';
 import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
 import { useToast } from '../../components/ui';
-import { usePermission, canWrite } from '../../features/auth/usePermission';
-import { CLASSES, shared, type GradingWeight } from '../../mocks/shared';
+import { SUBJECTS } from '../../mocks/shared';
 
 const TERMS = [
-  { value: 'א', label: "מחצית א'" },
-  { value: 'ב', label: "מחצית ב'" },
+  { value: 'term-a', label: "מחצית א'" },
+  { value: 'term-b', label: "מחצית ב'" },
 ];
 
-const TYPE_LABELS: Record<GradingWeight['assessmentType'], string> = {
+const GRADE_LEVELS = [
+  { value: 'ז', label: 'שכבה ז׳' },
+  { value: 'ח', label: 'שכבה ח׳' },
+  { value: 'ט', label: 'שכבה ט׳' },
+];
+
+const TYPE_LABELS: Record<WeightEntry['type'], string> = {
   exam: 'מבחן',
   quiz: 'בוחן',
   assignment: 'עבודה / מטלה',
 };
 
-type WeightRow = {
-  assessmentType: GradingWeight['assessmentType'];
-  label: string;
-  weight: number;
-};
+type WeightRow = { type: WeightEntry['type']; label: string; percent: number };
 
 export default function G06GradeWeights() {
   const toast = useToast();
-  const permission = usePermission('G06');
+  const token = useAppSelector((s) => s.auth.token);
+  const me = useGetMeQuery(undefined, { skip: !token });
+  const permission = me.data?.permissions['G06'];
   const editable = canWrite(permission);
-  const [classId, setClassId] = useState('');
-  const [term, setTerm] = useState('א');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'saving' | 'error'>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
+
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [subjectId, setSubjectId] = useState('');
+  const [termId, setTermId] = useState('term-a');
   const [rows, setRows] = useState<WeightRow[]>([]);
   const [validationError, setValidationError] = useState('');
 
-  const classOptions = CLASSES.map((c) => ({ value: c.id, label: `כיתה ${c.name}` }));
+  const subjectOptions = SUBJECTS.map((s) => ({ value: s.id, label: s.name }));
 
-  const isClosed =
-    !!classId &&
-    (shared.termStatuses.find((t) => t.classId === classId && t.term === term)?.closed ?? false);
+  const skip = !gradeLevel || !subjectId;
+  const { data, isLoading, isError, error, refetch } = useGetGradingWeightsQuery(
+    { gradeLevel, subjectId, termId },
+    { skip },
+  );
+
+  const [putWeights, { isLoading: isSaving }] = usePutGradingWeightsMutation();
+
+  const isClosed = termId === 'term-b';
 
   useEffect(() => {
-    if (!classId) {
+    if (!data) return;
+    const item = data.items[0];
+    if (!item) {
       setRows([]);
       return;
     }
-    setStatus('loading');
+    setRows(
+      item.weights.map((w) => ({
+        type: w.type,
+        label: TYPE_LABELS[w.type],
+        percent: w.percent,
+      })),
+    );
     setValidationError('');
-    const timer = setTimeout(() => {
-      try {
-        const weights = shared.gradingWeights.filter(
-          (w) => w.classId === classId && w.term === term,
-        );
-        setRows(
-          weights.map((w) => ({
-            assessmentType: w.assessmentType,
-            label: TYPE_LABELS[w.assessmentType],
-            weight: w.weight,
-          })),
-        );
-        setStatus('idle');
-      } catch {
-        setErrorMsg('שגיאה בטעינת המשקלים');
-        setStatus('error');
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [classId, term]);
+  }, [data]);
 
-  const total = rows.reduce((s, r) => s + r.weight, 0);
+  const total = rows.reduce((s, r) => s + r.percent, 0);
 
-  function handleWeightChange(type: GradingWeight['assessmentType'], value: string) {
+  function handleChange(type: WeightEntry['type'], value: string) {
     const num = Math.max(0, Math.min(100, Number(value) || 0));
-    setRows((prev) => prev.map((r) => (r.assessmentType === type ? { ...r, weight: num } : r)));
+    setRows((prev) => prev.map((r) => (r.type === type ? { ...r, percent: num } : r)));
     setValidationError('');
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (total !== 100) {
       setValidationError(`סכום המשקלים הוא ${total}% – חייב להיות בדיוק 100%`);
       return;
     }
-    setStatus('saving');
-    setTimeout(() => {
-      rows.forEach(({ assessmentType, weight }) => {
-        const existing = shared.gradingWeights.find(
-          (w) => w.classId === classId && w.term === term && w.assessmentType === assessmentType,
-        );
-        if (existing) existing.weight = weight;
-      });
-      setStatus('idle');
+    try {
+      await putWeights({
+        gradeLevel,
+        subjectId,
+        termId,
+        weights: rows.map(({ type, percent }) => ({ type, percent })),
+      }).unwrap();
       toast({ tone: 'success', message: 'המשקלים נשמרו בהצלחה' });
-    }, 400);
+    } catch {
+      toast({ tone: 'danger', message: 'שגיאה בשמירת המשקלים' });
+    }
   }
 
   const columns: TableColumn<WeightRow>[] = [
+    { key: 'label', header: 'סוג הערכה', cell: (row) => row.label },
     {
-      key: 'label',
-      header: 'סוג הערכה',
-      cell: (row) => row.label,
-    },
-    {
-      key: 'weight',
+      key: 'percent',
       header: 'משקל %',
       numeric: true,
       className: 'w-36',
       cell: (row) =>
-        isClosed ? (
-          <span>{row.weight}%</span>
+        isClosed || !editable ? (
+          <span>{row.percent}%</span>
         ) : (
-          <input
+          <TextField
             type="number"
+            label="משקל"
             min={0}
             max={100}
-            value={row.weight}
-            onChange={(e) => handleWeightChange(row.assessmentType, e.target.value)}
-            className="w-20 rounded-md border border-line bg-surface px-2 py-1 text-body text-fg focus:outline-none focus:ring-1 focus:ring-primary-500"
+            value={String(row.percent)}
+            onChange={(e) => handleChange(row.type, e.target.value)}
+            className="w-24"
           />
         ),
     },
   ];
 
-  if (permission === undefined) return <LoadingSkeleton />;
+  if (!token || me.isLoading) return <LoadingSkeleton />;
+  if (me.isError)
+    return <ErrorState message={errorMessage(me.error)} onRetry={() => void me.refetch()} />;
   if (!permission) return <ForbiddenState />;
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="משקלים לציון סופי" />
+      <PageHeader
+        title="משקלים לציון סופי"
+        breadcrumbs={[{ label: 'ציונים' }, { label: 'משקלים לציון סופי' }]}
+      />
 
       <div className="flex flex-wrap gap-4">
         <Select
-          label="כיתה"
-          options={classOptions}
-          value={classId}
-          onValueChange={setClassId}
-          placeholder="בחרו כיתה"
+          label="שכבה"
+          options={GRADE_LEVELS}
+          value={gradeLevel}
+          onValueChange={setGradeLevel}
+          placeholder="בחרו שכבה"
+          className="w-40"
+        />
+        <Select
+          label="מקצוע"
+          options={subjectOptions}
+          value={subjectId}
+          onValueChange={setSubjectId}
+          placeholder="בחרו מקצוע"
           className="w-48"
         />
         <Select
           label="מחצית"
           options={TERMS}
-          value={term}
-          onValueChange={setTerm}
+          value={termId}
+          onValueChange={setTermId}
           className="w-48"
         />
       </div>
 
-      {status === 'error' && (
-        <ErrorState
-          message={errorMsg}
-          onRetry={() => {
-            setStatus('idle');
-            setClassId('');
-          }}
-        />
+      {!skip && isError && (
+        <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />
       )}
 
-      {!classId && status !== 'error' && (
-        <p className="text-body text-fg-secondary">בחרו כיתה ומחצית כדי לראות את המשקלים.</p>
+      {skip && (
+        <p className="text-body text-fg-secondary">בחרו שכבה, מקצוע ומחצית כדי לראות את המשקלים.</p>
       )}
 
-      {classId && status === 'loading' && <LoadingSkeleton rows={4} />}
+      {!skip && isLoading && <LoadingSkeleton rows={4} />}
 
-      {classId && status !== 'loading' && status !== 'error' && rows.length === 0 && (
-        <p className="text-body text-fg-secondary">לא נמצאו משקלים לכיתה ומחצית שנבחרו.</p>
+      {!skip && !isLoading && !isError && rows.length === 0 && (
+        <p className="text-body text-fg-secondary">לא נמצאו משקלים לבחירה זו.</p>
       )}
 
-      {classId && status !== 'loading' && status !== 'error' && rows.length > 0 && (
+      {!skip && !isLoading && !isError && rows.length > 0 && (
         <>
           {isClosed && (
             <Alert tone="info" title="מחצית סגורה">
@@ -173,29 +190,22 @@ export default function G06GradeWeights() {
             </Alert>
           )}
 
-          <Table
-            caption="טבלת משקלים לציון סופי"
-            columns={columns}
-            rows={rows}
-            getRowId={(r) => r.assessmentType}
-          />
-
-          <div
-            className={`flex items-center justify-between rounded-lg border px-4 py-3 text-body-strong ${
-              total === 100
-                ? 'border-success-100 bg-success-50 text-success-700'
-                : 'border-warning-100 bg-warning-50 text-warning-700'
-            }`}
-          >
-            <span>סה״כ</span>
-            <span>{total}%</span>
-          </div>
+          <Card padding="M" className="flex flex-col gap-4">
+            <p className="text-h3 text-fg">משקלים</p>
+            <Table
+              caption="טבלת משקלים לציון סופי"
+              columns={columns}
+              rows={rows}
+              getRowId={(r) => r.type}
+            />
+            <Alert tone="info">סה״כ: {total}%</Alert>
+          </Card>
 
           {validationError && <Alert tone="danger">{validationError}</Alert>}
 
           {!isClosed && editable && (
             <div className="flex gap-3">
-              <Button onClick={handleSave} loading={status === 'saving'}>
+              <Button onClick={handleSave} loading={isSaving}>
                 שמור
               </Button>
             </div>
