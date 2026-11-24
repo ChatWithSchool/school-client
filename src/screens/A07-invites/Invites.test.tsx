@@ -15,13 +15,14 @@ const fail = (status: number, code: string) => () =>
 const answer = (status: number, code: string) =>
   server.use(http.get('*/api/invites', fail(status, code), { once: true }));
 
-async function sendInvite(email: string) {
+async function sendInvite(email: string, message?: string) {
   await userEvent.click(await screen.findByRole('tab', { name: 'הזמנה חדשה' }));
   await userEvent.type(screen.getByLabelText('אימייל *'), email);
   await userEvent.click(screen.getByRole('combobox', { name: 'תפקיד *' }));
   const options = await screen.findAllByRole('option');
   expect(options.map((o) => o.textContent)).toEqual(['מחנך/ת', 'מורה מקצועי', 'הורה']);
   await userEvent.click(options[0]);
+  if (message) await userEvent.type(screen.getByLabelText('הודעה אישית'), message);
   await userEvent.click(screen.getByRole('button', { name: 'שלח הזמנה' }));
 }
 
@@ -34,12 +35,17 @@ async function confirm(button: string) {
 describe('A07 invites', () => {
   it('הזמנה חדשה מופיעה בממתינות ותוכן המייל ביומן', async () => {
     render();
+    expect((await screen.findAllByRole('tab')).map((tab) => tab.textContent)).toEqual([
+      'הזמנה חדשה',
+      'ממתינות',
+    ]);
     expect(await screen.findByText(LIOR)).toBeInTheDocument();
     expect(screen.getAllByText('פגה').length).toBeGreaterThan(0);
-    await sendInvite('new.teacher@school.example');
+    await sendInvite('new.teacher@school.example', 'נשמח לראותך בצוות.');
     const table = await screen.findByRole('table', { name: 'הזמנות ממתינות' });
     expect(await within(table).findByText('new.teacher@school.example')).toBeInTheDocument();
     expect(screen.getByText('אל: new.teacher@school.example')).toBeInTheDocument();
+    expect(screen.getByText(/נשמח לראותך בצוות/)).toBeInTheDocument();
   });
 
   it('חוסם אימייל כפול, ומהטופס אפשר לשלוח שוב ולבטל', async () => {

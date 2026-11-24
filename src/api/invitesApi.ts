@@ -12,7 +12,7 @@ export const invitesApi = apiSlice.enhanceEndpoints({ addTagTypes: ['Invites'] }
       query: (params) => ({ url: '/invites', params }),
       providesTags: ['Invites'],
     }),
-    createInvite: build.mutation<SendResult, { email: string; role: RoleKey }>({
+    createInvite: build.mutation<SendResult, { email: string; role: RoleKey; message?: string }>({
       query: (body) => ({ url: '/invites', method: 'POST', body }),
       invalidatesTags: ['Invites'],
     }),

@@ -12,6 +12,7 @@ import {
   Modal,
   Alert,
   EmptyState,
+  TextArea,
   useToast,
 } from '../../components/ui';
 import { LoadingSkeleton, ErrorState, ForbiddenState } from '../../components/StateViews';
@@ -70,6 +71,7 @@ export default function InvitesScreen() {
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
+  const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dupError, setDupError] = useState<string | null>(null);
   const [action, setAction] = useState<Action | null>(null);
@@ -102,11 +104,16 @@ export default function InvitesScreen() {
     setErrors(local);
     if (Object.keys(local).length) return;
     try {
-      const res = await createInvite({ email: email.trim(), role: role as RoleKey }).unwrap();
+      const res = await createInvite({
+        email: email.trim(),
+        role: role as RoleKey,
+        message: message.trim() || undefined,
+      }).unwrap();
       addToLog(res.mail);
       toast({ tone: 'success', message: `ההזמנה נשלחה ל-${email.trim()}` });
       setEmail('');
       setRole('');
+      setMessage('');
       goToTab('pending');
     } catch (err) {
       if ((err as ApiError).status === 409) setDupError(errorMessage(err));
@@ -186,7 +193,12 @@ export default function InvitesScreen() {
           </div>
           {/* TODO(A08): classes / children picker, sent as classIds / studentIds */}
           <TextField label="לכיתות / ילדים" placeholder="הקלידו כאן" />
-          <TextField label="הודעה אישית" placeholder="הקלידו כאן" />
+          <TextArea
+            label="הודעה אישית"
+            placeholder="הקלידו כאן"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
         </div>
       </div>
 
@@ -270,8 +282,8 @@ export default function InvitesScreen() {
         label="לשוניות הזמנות"
         defaultValue="pending"
         items={[
-          { value: 'pending', label: 'ממתינות', content: pendingTabContent },
           { value: 'new', label: 'הזמנה חדשה', content: newTabContent },
+          { value: 'pending', label: 'ממתינות', content: pendingTabContent },
         ]}
       />
 
