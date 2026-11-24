@@ -1,5 +1,4 @@
-import { Lesson } from './types';
-
+import { Lesson } from '../screens/T02-timetable-edit/types';
 export const DAYS = ["יום א'", "יום ב'", "יום ג'", "יום ד'", "יום ה'", "יום ו'"];
 
 export const HOURS = [

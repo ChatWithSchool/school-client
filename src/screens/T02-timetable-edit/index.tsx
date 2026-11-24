@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, TextField } from '../../components/ui';
+import { Button, Select } from '../../components/ui';
 import {
   DAYS,
   HOURS,
@@ -8,10 +8,37 @@ import {
   CLASS_OPTIONS,
   TEACHER_OPTIONS,
   ROOM_OPTIONS,
-} from './mockData';
-import { Lesson, ConflictError } from './types';
+} from '../../mocks/timetableData'
+import { Lesson } from './types';
 
-export default function TimetableEditScreen() {
+type FormErrorKind = 'validation' | 'room' | 'teacher' | 'class';
+
+interface FormError {
+  kind: FormErrorKind;
+  message: string;
+}
+
+const ERROR_TITLES: Record<FormErrorKind, string> = {
+  validation: 'שגיאה בטופס',
+  room: 'התנגשות חדר',
+  teacher: 'התנגשות מורה',
+  class: 'התנגשות כיתה',
+};
+
+const DAY_OPTIONS = DAYS.map((d) => ({ value: d, label: d }));
+const HOUR_OPTIONS = HOURS.map((h) => ({ value: String(h.id), label: h.label }));
+
+interface TimetableEditScreenProps {
+  canEdit?: boolean;
+  isLoading?: boolean;
+  loadError?: string | null;
+}
+
+export default function TimetableEditScreen({
+  canEdit = true,
+  isLoading = false,
+  loadError = null,
+}: TimetableEditScreenProps) {
   const [lessons, setLessons] = useState<Lesson[]>(INITIAL_LESSONS);
 
   // טופס שיעור
@@ -19,74 +46,50 @@ export default function TimetableEditScreen() {
   const [className, setClassName] = useState('');
   const [teacher, setTeacher] = useState('');
   const [room, setRoom] = useState('');
-  const [dayHourInput, setDayHourInput] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [day, setDay] = useState('');
+  const [hour, setHour] = useState('');
 
-  // ניהול התנגשות
-  const [conflict, setConflict] = useState<ConflictError>({
-    hasConflict: false,
-    message: '',
-  });
+  const [formError, setFormError] = useState<FormError | null>(null);
 
-  const getLessonAt = (day: string, hour: number) => {
-    return lessons.find((l) => l.day.trim() === day.trim() && Number(l.hour) === Number(hour));
-  };
+  const getLessonAt = (d: string, h: number) =>
+    lessons.find((l) => l.day.trim() === d.trim() && Number(l.hour) === h);
 
   const handleSaveLesson = () => {
-    setConflict({ hasConflict: false, message: '' });
+    setFormError(null);
 
-    if (!subject || !className || !teacher || !room || !dayHourInput) {
-      setConflict({
-        hasConflict: true,
-        message: 'נא למלא את כל שדות החובה (*)',
-      });
+    if (!subject || !className || !teacher || !room || !day || !hour) {
+      setFormError({ kind: 'validation', message: 'נא למלא את כל שדות החובה (*)' });
       return;
     }
 
-    const parts = dayHourInput.trim().split(' ');
-    const targetHour = parseInt(parts[parts.length - 1], 10);
-    const targetDay = parts.slice(0, -1).join(' ');
-
-    if (!targetDay || isNaN(targetHour) || targetHour < 1 || targetHour > 7) {
-      setConflict({
-        hasConflict: true,
-        message: 'פורמט יום ושעה אינו תקין. דוגמה תקינה: "יום א\' 1"',
-      });
-      return;
-    }
-
-    // בדיקת התנגשות חדר
-    const roomConflict = lessons.find(
-      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.room === room
+    const targetHour = Number(hour);
+    const sameSlot = lessons.filter(
+      (l) => l.day.trim() === day.trim() && Number(l.hour) === targetHour
     );
+
+    const roomConflict = sameSlot.find((l) => l.room === room);
     if (roomConflict) {
-      setConflict({
-        hasConflict: true,
-        message: `התנגשות חדר: ${room} כבר תפוס ב${targetDay} בשיעור ${targetHour} על ידי ${roomConflict.subject} (${roomConflict.className})`,
+      setFormError({
+        kind: 'room',
+        message: `החדר ${room} כבר תפוס ב${day} בשיעור ${targetHour} על ידי ${roomConflict.subject} (${roomConflict.className})`,
       });
       return;
     }
 
-    // בדיקת התנגשות מורה
-    const teacherConflict = lessons.find(
-      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.teacher === teacher
-    );
+    const teacherConflict = sameSlot.find((l) => l.teacher === teacher);
     if (teacherConflict) {
-      setConflict({
-        hasConflict: true,
-        message: `התנגשות מורה: המורה ${teacher} כבר מלמד/ת ב${targetDay} בשיעור ${targetHour} בכיתה ${teacherConflict.className}`,
+      setFormError({
+        kind: 'teacher',
+        message: `המורה ${teacher} כבר מלמד/ת ב${day} בשיעור ${targetHour} בכיתה ${teacherConflict.className}`,
       });
       return;
     }
 
-    // בדיקת התנגשות כיתה
-    const classConflict = lessons.find(
-      (l) => l.day.trim() === targetDay.trim() && Number(l.hour) === targetHour && l.className === className
-    );
+    const classConflict = sameSlot.find((l) => l.className === className);
     if (classConflict) {
-      setConflict({
-        hasConflict: true,
-        message: `התנגשות כיתה: כיתה ${className} כבר לומדת ${classConflict.subject} ב${targetDay} בשיעור ${targetHour}`,
+      setFormError({
+        kind: 'class',
+        message: `כיתה ${className} כבר לומדת ${classConflict.subject} ב${day} בשיעור ${targetHour}`,
       });
       return;
     }
@@ -97,7 +100,7 @@ export default function TimetableEditScreen() {
       className,
       teacher,
       room,
-      day: targetDay,
+      day,
       hour: targetHour,
       color: 'bg-primary-600 text-white font-bold',
     };
@@ -109,9 +112,38 @@ export default function TimetableEditScreen() {
     setClassName('');
     setTeacher('');
     setRoom('');
-    setDayHourInput('');
-    setIsRecurring(false);
+    setDay('');
+    setHour('');
   };
+
+  // ===== מצבי מסך =====
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto text-fg-secondary" dir="rtl" role="status">
+        טוען מערכת שעות...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto" dir="rtl">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl">
+          {loadError}
+        </div>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto" dir="rtl">
+        <div role="alert" className="bg-subtle border border-line text-fg p-4 rounded-xl">
+          אין לך הרשאה לערוך את מערכת השעות.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
@@ -121,43 +153,56 @@ export default function TimetableEditScreen() {
           <span>/</span>
           <span className="text-fg font-medium">עריכת מערכת שעות</span>
         </div>
-        <Button type="button" variant="primary">
+        {/* כפתור הפרסום עדיין לא מחובר לפעולה, לכן הוא מושבת */}
+        <Button type="button" variant="primary" disabled>
           פרסום
         </Button>
       </div>
 
       <h1 className="text-2xl font-bold text-fg">עריכת מערכת שעות</h1>
 
+      {lessons.length === 0 && (
+        <p className="text-sm text-fg-secondary">
+          עדיין לא נוספו שיעורים. לחצו על משבצת בטבלה כדי להתחיל.
+        </p>
+      )}
+
       {/* רשת מערכת השעות */}
       <div className="bg-surface p-4 rounded-xl border border-line shadow-sm overflow-x-auto">
-        <div style={{ minWidth: '800px' }}>
+        <div className="min-w-max">
           <div className="grid grid-cols-7 gap-2 mb-2 text-center text-sm font-semibold text-fg-secondary bg-subtle p-2 rounded-lg">
             <div className="text-start ps-2">שעה</div>
-            {DAYS.map((day) => (
-              <div key={day}>{day}</div>
+            {DAYS.map((d) => (
+              <div key={d}>{d}</div>
             ))}
           </div>
 
           <div className="space-y-2">
             {HOURS.map((hourObj) => (
-              <div 
-                key={hourObj.id} 
-                className="grid grid-cols-7 gap-2 items-center text-xs"
-                style={{ minHeight: '52px' }}
+              <div
+                key={hourObj.id}
+                className="grid grid-cols-7 gap-2 items-center text-xs h-14"
               >
                 <div className="text-start ps-2 text-fg-muted font-medium">
                   <div className="font-semibold text-fg">{hourObj.label}</div>
-                  <div style={{ fontSize: '11px' }}>{hourObj.time}</div>
+                  <div className="text-xs">{hourObj.time}</div>
                 </div>
 
-                {DAYS.map((day) => {
-                  const lesson = getLessonAt(day, hourObj.id);
+                {DAYS.map((d) => {
+                  const lesson = getLessonAt(d, hourObj.id);
+                  const cellLabel = lesson
+                    ? `${d}, ${hourObj.label}: ${lesson.subject}, חדר ${lesson.room}`
+                    : `${d}, ${hourObj.label}: משבצת פנויה, לחצו לבחירה`;
                   return (
-                    <div
-                      key={day}
-                      onClick={() => setDayHourInput(`${day} ${hourObj.id}`)}
-                      style={{ minHeight: '48px' }}
-                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer flex flex-col justify-center items-center ${
+                    <button
+                      key={d}
+                      type="button"
+                      aria-label={cellLabel}
+                      onClick={() => {
+                        setDay(d);
+                        setHour(String(hourObj.id));
+                      }}
+                      className={`p-2 rounded-lg border text-center transition-all cursor-pointer flex flex-col justify-center items-center h-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                         lesson
                           ? 'bg-primary-600 text-white font-bold border-transparent shadow-md'
                           : 'bg-surface border-dashed border-line hover:border-primary-400 hover:bg-subtle/30'
@@ -165,13 +210,15 @@ export default function TimetableEditScreen() {
                     >
                       {lesson ? (
                         <>
-                          <div className="font-bold text-xs text-white">{lesson.subject}</div>
-                          <div className="opacity-90 text-white" style={{ fontSize: '10px' }}>{lesson.room}</div>
+                          <span className="font-bold text-xs text-white">{lesson.subject}</span>
+                          <span className="opacity-90 text-white text-xs">{lesson.room}</span>
                         </>
                       ) : (
-                        <span className="text-fg-muted hover:text-primary-600 text-base">+</span>
+                        <span aria-hidden="true" className="text-fg-muted text-base">
+                          +
+                        </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -185,84 +232,65 @@ export default function TimetableEditScreen() {
         <h2 className="text-lg font-semibold text-fg">חלון שיעור</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-fg-secondary mb-1">מקצוע *</label>
-            <select
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-surface border border-line rounded-lg p-2.5 text-sm text-fg focus:outline-none focus:border-primary-500"
-            >
-              <option value="">בחירה</option>
-              {SUBJECT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="lesson-subject"
+            label="מקצוע"
+            required
+            placeholder="בחירה"
+            options={SUBJECT_OPTIONS}
+            value={subject}
+            onValueChange={setSubject}
+          />
 
-          <div>
-            <label className="block text-sm text-fg-secondary mb-1">כיתה / קבוצה *</label>
-            <select
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              className="w-full bg-surface border border-line rounded-lg p-2.5 text-sm text-fg focus:outline-none focus:border-primary-500"
-            >
-              <option value="">בחירה</option>
-              {CLASS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="lesson-class"
+            label="כיתה / קבוצה"
+            required
+            placeholder="בחירה"
+            options={CLASS_OPTIONS}
+            value={className}
+            onValueChange={setClassName}
+          />
 
-          <div>
-            <label className="block text-sm text-fg-secondary mb-1">חדר</label>
-            <select
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              className="w-full bg-surface border border-line rounded-lg p-2.5 text-sm text-fg focus:outline-none focus:border-primary-500"
-            >
-              <option value="">בחירה</option>
-              {ROOM_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="lesson-room"
+            label="חדר"
+            required
+            placeholder="בחירה"
+            options={ROOM_OPTIONS}
+            value={room}
+            onValueChange={setRoom}
+          />
 
-          <div>
-            <label className="block text-sm text-fg-secondary mb-1">מורה *</label>
-            <select
-              value={teacher}
-              onChange={(e) => setTeacher(e.target.value)}
-              className="w-full bg-surface border border-line rounded-lg p-2.5 text-sm text-fg focus:outline-none focus:border-primary-500"
-            >
-              <option value="">בחירה</option>
-              {TEACHER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="lesson-teacher"
+            label="מורה"
+            required
+            placeholder="בחירה"
+            options={TEACHER_OPTIONS}
+            value={teacher}
+            onValueChange={setTeacher}
+          />
 
-          <div className="md:col-span-2">
-            <TextField
-              label="יום ושעה"
-              required
-              placeholder="הקלידו כאן (לדוגמה: יום א' 1)"
-              value={dayHourInput}
-              onChange={(e) => setDayHourInput(e.target.value)}
-            />
-          </div>
+          <Select
+            id="lesson-day"
+            label="יום"
+            required
+            placeholder="בחירה"
+            options={DAY_OPTIONS}
+            value={day}
+            onValueChange={setDay}
+          />
 
-          <div className="md:col-span-2 flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="recurring"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="w-4 h-4 text-primary-600 border-line rounded focus:ring-primary-500"
-            />
-            <label htmlFor="recurring" className="text-sm text-fg cursor-pointer">
-              חזרתיות
-            </label>
-          </div>
+          <Select
+            id="lesson-hour"
+            label="שעה"
+            required
+            placeholder="בחירה"
+            options={HOUR_OPTIONS}
+            value={hour}
+            onValueChange={setHour}
+          />
         </div>
 
         <div className="flex justify-end pt-2">
@@ -272,12 +300,13 @@ export default function TimetableEditScreen() {
         </div>
       </div>
 
-      {conflict.hasConflict && (
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl">
-          <div className="font-semibold mb-1">התראת התנגשות!</div>
-          <div>{conflict.message}</div>
+      {formError && (
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl">
+          <div className="font-semibold mb-1">{ERROR_TITLES[formError.kind]}</div>
+          <div>{formError.message}</div>
         </div>
       )}
     </div>
   );
+
 }
