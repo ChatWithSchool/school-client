@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PageHeader,
@@ -13,13 +13,18 @@ import {
 } from '../../components/ui';
 import type { ModalFooter } from '../../components/ui';
 import { ForbiddenState } from '../../components/StateViews';
+import { usePermission } from '../../features/auth/usePermission';
+import { useGetMeQuery } from '../../api/authApi'; // התאימי לנתיב שבו A07 מייבאת אותו
+import { pathFor } from '../../routes/screens';
 import {
-  CLASS_OPTIONS,
-  EXISTING_PARENT_EMAILS,
-  EXISTING_STUDENT_IDS,
-  TAG_OPTIONS,
-} from '../../mocks/studentForm';
-import { createStudent, getStudentById, updateStudent } from '../../api/studentsApi';
+  useCreateStudentMutation,
+  useGetClassesQuery,
+  useGetStudentQuery,
+  useGetStudentTagsQuery,
+  useLazyCheckStudentDuplicateQuery,
+  useUpdateStudentMutation,
+} from '../../api/studentsApi';
+import type { CheckDuplicateParams, CheckDuplicateResult } from '../../api/studentsApi';
 
 export interface FormData {
   firstName: string;
@@ -42,6 +47,7 @@ interface FormErrors {
   birthDate?: string;
   className?: string;
   phone?: string;
+  phoneExtra?: string;
   parentEmail?: string;
 }
 
@@ -59,6 +65,12 @@ const EMPTY_FORM: FormData = {
   tags: [],
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^0\d{1,2}-?\d{3}-?\d{4}$/;
+
+const DUPLICATE_ID_MESSAGE = 'תלמיד עם תעודת זהות זו כבר קיים במערכת';
+const DUPLICATE_EMAIL_MESSAGE = 'אימייל זה כבר רשום במערכת';
+
 // בדיקת תעודת זהות ישראלית כולל ספרת ביקורת
 function isValidIsraeliId(id: string): boolean {
   const cleaned = id.trim();
@@ -74,16 +86,8 @@ function isValidIsraeliId(id: string): boolean {
   return sum % 10 === 0;
 }
 
-function usePermission(_screenId: string): { canWrite: boolean } {
-  return { canWrite: true };
-}
-
-function pathFor(screenId: 'S01' | 'S02'): string {
-  return screenId === 'S02' ? '/students/s02' : pathForList();
-}
-
-function pathForList(): string {
-  return '/students';
+function isValidPhone(phone: string): boolean {
+  return PHONE_REGEX.test(phone.replace(/\s/g, ''));
 }
 
 function formatDateInput(date: Date | null): string {
@@ -101,8 +105,23 @@ function parseDateInput(isoDate: string): Date | null {
   return new Date(year, month - 1, day);
 }
 
+// מחלץ את הודעת השגיאה מתשובת השרת (RTK Query) או מחזיר הודעת ברירת מחדל
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const data = (error as { data?: unknown }).data;
+    if (typeof data === 'object' && data !== null && 'message' in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+  }
+  return fallback;
+}
+
 export default function StudentFormPage() {
-  const { canWrite } = usePermission('S02');
+
+  const permissionLevel = usePermission('students');
+  const canWrite = String(permissionLevel) === 'write';
+  const { isLoading: isMeLoading } = useGetMeQuery();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id');
   const isEdit = Boolean(editId);
@@ -111,53 +130,86 @@ export default function StudentFormPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isDirty, setIsDirty] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-  const [isLoadingStudent, setIsLoadingStudent] = useState(Boolean(editId));
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hydratedId, setHydratedId] = useState<string | null>(null);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   const navigate = useNavigate();
   const toast = useToast();
 
+  // הערך העדכני של הטופס, לשימוש אחרי await (מונע תוצאת בדיקה ישנה על ערך שהשתנה)
+  const latestForm = useRef(form);
+  latestForm.current = form;
+
+  const { data: student, error: studentError } = useGetStudentQuery(editId ?? '', {
+    skip: !editId || !canWrite,
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: classesData } = useGetClassesQuery(undefined, { skip: !canWrite });
+  const { data: tagsData } = useGetStudentTagsQuery(undefined, { skip: !canWrite });
+  const [checkDuplicate] = useLazyCheckStudentDuplicateQuery();
+  const [createStudent, { isLoading: isCreating }] = useCreateStudentMutation();
+  const [updateStudent, { isLoading: isUpdating }] = useUpdateStudentMutation();
+  const isSubmitting = isCreating || isUpdating;
+
+  const classOptions = useMemo(
+    () => [
+      { value: '', label: 'בחרו כיתה' },
+      ...(classesData?.items ?? []).map((c) => ({ value: c.name, label: c.name })),
+    ],
+    [classesData],
+  );
+  const tagOptions = useMemo(() => (tagsData?.items ?? []).map((t) => t.name), [tagsData]);
+
+  const loadError = studentError ? getErrorMessage(studentError, 'שגיאה בטעינת נתוני התלמיד') : null;
+
+  // מילוי הטופס פעם אחת כשנתוני התלמיד מגיעים (מצב עריכה)
   useEffect(() => {
-    if (!editId || !canWrite) {
-      setIsLoadingStudent(false);
-      return;
-    }
+    if (!student || hydratedId === student.id) return;
+    setForm({
+      firstName: student.firstName,
+      lastName: student.lastName,
+      nationalId: student.nationalId,
+      birthDate: parseDateInput(student.birthDate),
+      className: student.className,
+      phone: student.phone,
+      phoneExtra: student.phoneExtra,
+      parentEmail: student.parentEmail,
+      address: student.address,
+      notes: student.notes,
+      tags: student.tags ?? [],
+    });
+    setIsDirty(false);
+    setHydratedId(student.id);
+  }, [student, hydratedId]);
 
-    let cancelled = false;
-    setIsLoadingStudent(true);
-    setLoadError(null);
-
-    getStudentById(editId)
-      .then((student) => {
-        if (cancelled) return;
-        setForm({
-          firstName: student.firstName,
-          lastName: student.lastName,
-          nationalId: student.nationalId,
-          birthDate: parseDateInput(student.birthDate),
-          className: student.className,
-          phone: student.phone,
-          phoneExtra: student.phoneExtra,
-          parentEmail: student.parentEmail,
-          address: student.address,
-          notes: student.notes,
-          tags: student.tags ?? [],
-        });
-        setIsDirty(false);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoadError(err instanceof Error ? err.message : 'שגיאה בטעינת נתוני התלמיד');
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingStudent(false);
-      });
-
-    return () => {
-      cancelled = true;
+  // אזהרה בסגירת טאב / רענון כשיש שינויים שלא נשמרו
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
     };
-  }, [editId, canWrite]);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const listPath = pathFor('S01');
+
+  // עד שהמשתמשת נטענה אי אפשר לדעת אם יש הרשאה - לא מציגים "אין הרשאה" בטעות
+  if (isMeLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
+        <PageHeader
+          title={isEdit ? 'עריכת תלמיד' : 'תלמיד חדש'}
+          breadcrumbs={[
+            { label: 'תלמידים', to: listPath },
+            { label: isEdit ? 'עריכת תלמיד' : 'תלמיד חדש' },
+          ]}
+        />
+        <p className="text-body text-muted">טוען...</p>
+      </div>
+    );
+  }
 
   if (!canWrite) {
     return <ForbiddenState />;
@@ -169,51 +221,85 @@ export default function StudentFormPage() {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
-  function validateId() {
-    if (!form.nationalId) return;
-    if (!isValidIsraeliId(form.nationalId)) {
+  // בדיקת כפילות מול השרת (GET /students/check-duplicate). בעריכה מוחרג התלמיד עצמו.
+  async function runDuplicateCheck(
+    params: CheckDuplicateParams,
+  ): Promise<CheckDuplicateResult | null> {
+    try {
+      return await checkDuplicate({ ...params, excludeId: editId ?? undefined }).unwrap();
+    } catch {
+      // כשל בבדיקה לא חוסם: השרת יחזיר 409 בשמירה אם יש כפילות
+      return null;
+    }
+  }
+
+  async function validateId() {
+    const id = form.nationalId.trim();
+    if (!id) return;
+    if (!isValidIsraeliId(id)) {
       setErrors((prev) => ({ ...prev, nationalId: 'תעודת זהות אינה תקינה' }));
-    } else if (EXISTING_STUDENT_IDS.includes(form.nationalId)) {
-      setErrors((prev) => ({ ...prev, nationalId: 'תלמיד עם תעודת זהות זו כבר קיים במערכת' }));
+      return;
+    }
+    const result = await runDuplicateCheck({ nationalId: id });
+    if (result?.nationalIdExists && latestForm.current.nationalId.trim() === id) {
+      setErrors((prev) => ({ ...prev, nationalId: DUPLICATE_ID_MESSAGE }));
     }
   }
 
-  function validateEmail() {
-    if (!form.parentEmail) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.parentEmail)) {
+  async function validateEmail() {
+    const email = form.parentEmail.trim();
+    if (!email) return;
+    if (!EMAIL_REGEX.test(email)) {
       setErrors((prev) => ({ ...prev, parentEmail: 'כתובת אימייל אינה תקינה' }));
-    } else if (EXISTING_PARENT_EMAILS.includes(form.parentEmail)) {
-      setErrors((prev) => ({ ...prev, parentEmail: 'אימייל זה כבר רשום במערכת' }));
+      return;
+    }
+    const result = await runDuplicateCheck({ parentEmail: email });
+    if (result?.parentEmailExists && latestForm.current.parentEmail.trim() === email) {
+      setErrors((prev) => ({ ...prev, parentEmail: DUPLICATE_EMAIL_MESSAGE }));
     }
   }
 
+  // ולידציה מקומית (פורמט ושדות חובה). בדיקת הכפילות נעשית מול השרת ב-handleSave
   function validate(): boolean {
     const e: FormErrors = {};
+
     if (!form.firstName.trim()) e.firstName = 'שדה חובה';
     if (!form.lastName.trim()) e.lastName = 'שדה חובה';
-    if (!form.nationalId) {
+
+    if (!form.nationalId.trim()) {
       e.nationalId = 'שדה חובה';
     } else if (!isValidIsraeliId(form.nationalId)) {
       e.nationalId = 'תעודת זהות אינה תקינה';
-    } else if (EXISTING_STUDENT_IDS.includes(form.nationalId)) {
-      e.nationalId = 'תלמיד עם תעודת זהות זו כבר קיים במערכת';
     }
-    if (!form.birthDate) e.birthDate = 'שדה חובה';
+
+    if (!form.birthDate) {
+      e.birthDate = 'שדה חובה';
+    } else if (form.birthDate.getTime() > Date.now()) {
+      e.birthDate = 'תאריך לידה לא יכול להיות בעתיד';
+    }
+
     if (!form.className) e.className = 'שדה חובה';
+
     if (!form.phone.trim()) {
       e.phone = 'שדה חובה';
-    } else if (!/^0\d{1,2}-?\d{3}-?\d{4}$/.test(form.phone.replace(/\s/g, ''))) {
+    } else if (!isValidPhone(form.phone)) {
       e.phone = 'מספר טלפון אינו תקין';
     }
-    if (form.parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.parentEmail)) {
+
+    if (form.phoneExtra.trim() && !isValidPhone(form.phoneExtra)) {
+      e.phoneExtra = 'מספר טלפון אינו תקין';
+    }
+
+    if (form.parentEmail.trim() && !EMAIL_REGEX.test(form.parentEmail.trim())) {
       e.parentEmail = 'כתובת אימייל אינה תקינה';
     }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
   async function handleSave() {
-    if (!validate() || isSubmitting) return;
+    if (isSubmitting || isCheckingDuplicates || !validate()) return;
 
     const payload = {
       firstName: form.firstName.trim(),
@@ -230,20 +316,35 @@ export default function StudentFormPage() {
     };
 
     try {
-      setIsSubmitting(true);
-      if (isEdit && editId) {
-        await updateStudent(editId, payload);
-      } else {
-        await createStudent(payload);
-      }
-      toast({ message: 'נשמר בהצלחה!' });
-      setIsDirty(false);
-    } catch (err: unknown) {
-      toast({
-        message: err instanceof Error ? err.message : 'אירעה שגיאה בשמירה',
+      setIsCheckingDuplicates(true);
+      const duplicates = await runDuplicateCheck({
+        nationalId: payload.nationalId,
+        parentEmail: payload.parentEmail || undefined,
       });
+      if (duplicates) {
+        const e: FormErrors = {};
+        if (duplicates.nationalIdExists) e.nationalId = DUPLICATE_ID_MESSAGE;
+        if (duplicates.parentEmailExists) e.parentEmail = DUPLICATE_EMAIL_MESSAGE;
+        if (Object.keys(e).length > 0) {
+          setErrors((prev) => ({ ...prev, ...e }));
+          return;
+        }
+      }
     } finally {
-      setIsSubmitting(false);
+      setIsCheckingDuplicates(false);
+    }
+
+    try {
+      if (isEdit && editId) {
+        await updateStudent({ id: editId, body: payload }).unwrap();
+      } else {
+        await createStudent(payload).unwrap();
+      }
+      setIsDirty(false);
+      toast({ message: 'נשמר בהצלחה!' });
+      navigate(listPath);
+    } catch (err: unknown) {
+      toast({ message: getErrorMessage(err, 'אירעה שגיאה בשמירה') });
     }
   }
 
@@ -252,20 +353,18 @@ export default function StudentFormPage() {
       setIsLeaveModalOpen(true);
       return;
     }
-    navigate(pathFor('S01'));
+    navigate(listPath);
   }
 
   function confirmLeave() {
     setIsLeaveModalOpen(false);
     setIsDirty(false);
-    navigate(pathFor('S01'));
+    navigate(listPath);
   }
 
   function toggleTag(tag: string) {
     set('tags', form.tags.includes(tag) ? form.tags.filter((t) => t !== tag) : [...form.tags, tag]);
   }
-
-  const listPath = pathFor('S01');
 
   const leaveFooter = {
     variant: 'double',
@@ -276,18 +375,6 @@ export default function StudentFormPage() {
     confirm: { label: 'צא', onClick: confirmLeave },
     cancel: { label: 'הישאר בעמוד', onClick: () => setIsLeaveModalOpen(false) },
   } as unknown as ModalFooter;
-
-  if (isLoadingStudent) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
-        <PageHeader
-          title="עריכת תלמיד"
-          breadcrumbs={[{ label: 'תלמידים', to: listPath }, { label: 'עריכת תלמיד' }]}
-        />
-        <p className="text-body text-muted">טוען נתוני תלמיד...</p>
-      </div>
-    );
-  }
 
   if (loadError) {
     return (
@@ -304,6 +391,18 @@ export default function StudentFormPage() {
             </Button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (isEdit && hydratedId !== editId) {
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
+        <PageHeader
+          title="עריכת תלמיד"
+          breadcrumbs={[{ label: 'תלמידים', to: listPath }, { label: 'עריכת תלמיד' }]}
+        />
+        <p className="text-body text-muted">טוען נתוני תלמיד...</p>
       </div>
     );
   }
@@ -356,7 +455,7 @@ export default function StudentFormPage() {
           <Select
             label="כיתה"
             required
-            options={CLASS_OPTIONS}
+            options={classOptions}
             value={form.className}
             onValueChange={(v) => set('className', v)}
             error={errors.className}
@@ -380,6 +479,7 @@ export default function StudentFormPage() {
             label="טלפון נוסף"
             value={form.phoneExtra}
             onChange={(e) => set('phoneExtra', e.target.value)}
+            error={errors.phoneExtra}
             inputMode="tel"
           />
           <TextField
@@ -404,7 +504,7 @@ export default function StudentFormPage() {
         <div className="flex flex-col gap-2">
           <span className="text-label text-fg">תגיות</span>
           <div className="flex flex-wrap gap-2">
-            {TAG_OPTIONS.map((tag) => {
+            {tagOptions.map((tag) => {
               const isSelected = form.tags.includes(tag);
               return (
                 <button
@@ -433,10 +533,18 @@ export default function StudentFormPage() {
 
       {/* פעולות */}
       <div className="flex gap-3 justify-start">
-        <Button variant="primary" onClick={handleSave} disabled={isSubmitting}>
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={isSubmitting || isCheckingDuplicates}
+        >
           שמור
         </Button>
-        <Button variant="secondary" onClick={handleCancel} disabled={isSubmitting}>
+        <Button
+          variant="secondary"
+          onClick={handleCancel}
+          disabled={isSubmitting || isCheckingDuplicates}
+        >
           בטל
         </Button>
       </div>

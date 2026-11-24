@@ -6,8 +6,8 @@ import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
+import { studentFormHandlers } from './studentForm';
 import { teachingHandlers } from './teaching';
-import { MOCK_STUDENTS_BY_ID, type StudentFormRecord } from './studentForm';
 
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
@@ -30,40 +30,6 @@ const MOCK_INSTITUTION = {
 const MOCK_TERMS = [
   { id: 't1', name: "מחצית א'", startDate: '2026-09-01', endDate: '2027-01-31', status: 'closed' },
   { id: 't2', name: "מחצית ב'", startDate: '2027-02-01', endDate: '2027-06-30', status: 'open' },
-];
-
-const studentsStore: Record<string, StudentFormRecord> = {
-  ...MOCK_STUDENTS_BY_ID,
-};
-
-const studentFormHandlers = [
-  http.get('*/api/students/:id', ({ params }) => {
-    const id = String(params.id ?? '');
-    const student = studentsStore[id];
-    if (!student) {
-      return HttpResponse.json({ message: 'תלמיד לא נמצא' }, { status: 404 });
-    }
-    return HttpResponse.json(student, { status: 200 });
-  }),
-
-  http.post('*/api/students', async ({ request }) => {
-    const body = (await request.json()) as Omit<StudentFormRecord, 'id'>;
-    const nextId = String(Date.now());
-    const created: StudentFormRecord = { id: nextId, ...body };
-    studentsStore[nextId] = created;
-    return HttpResponse.json(created, { status: 201 });
-  }),
-
-  http.put('*/api/students/:id', async ({ params, request }) => {
-    const id = String(params.id ?? '');
-    if (!studentsStore[id]) {
-      return HttpResponse.json({ message: 'תלמיד לא נמצא' }, { status: 404 });
-    }
-    const body = (await request.json()) as Omit<StudentFormRecord, 'id'>;
-    const updated: StudentFormRecord = { id, ...body };
-    studentsStore[id] = updated;
-    return HttpResponse.json(updated, { status: 200 });
-  }),
 ];
 
 export const handlers = [
