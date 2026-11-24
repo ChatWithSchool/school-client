@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useGetMeQuery } from '../../api/authApi';
 import { errorMessage } from '../../api/errors';
 import {
   useGetTeachingAssignmentsQuery,
@@ -11,30 +12,14 @@ import {
   type TeachingClass,
   type TeachingTeacher,
 } from '../../api/subjectsAssignmentsApi';
-import {
-  ErrorState,
-  ForbiddenState,
-  LoadingSkeleton,
-} from '../../components/StateViews';
-import {
-  PageHeader,
-  Select,
-  Table,
-  Tabs,
-  useToast,
-  type TableColumn,
-} from '../../components/ui';
-import { canWrite, usePermission } from '../../features/auth/usePermission';
+import { useAppSelector } from '../../app/hooks';
+import { ErrorState, ForbiddenState, LoadingSkeleton } from '../../components/StateViews';
+import { PageHeader, Select, Table, Tabs, useToast, type TableColumn } from '../../components/ui';
+import { canWrite } from '../../features/auth/usePermission';
 
 const noTeacherValue = 'none';
 
-function SubjectList({
-  subjects,
-  loading,
-}: {
-  subjects: Subject[];
-  loading: boolean;
-}) {
+function SubjectList({ subjects, loading }: { subjects: Subject[]; loading: boolean }) {
   const columns: TableColumn<Subject>[] = [
     { key: 'name', header: 'שם המקצוע', cell: (subject) => subject.name },
     { key: 'code', header: 'קוד', cell: (subject) => subject.code, numeric: true },
@@ -77,9 +62,7 @@ function AssignmentForm({
   const [subjectId, setSubjectId] = useState('');
   const [saveAssignment, saveState] = useUpdateTeachingAssignmentMutation();
 
-  const visibleClasses = grade === 'all'
-    ? classes
-    : classes.filter((item) => item.grade === grade);
+  const visibleClasses = grade === 'all' ? classes : classes.filter((item) => item.grade === grade);
   const selectedAssignment = assignments.find(
     (assignment) => assignment.classId === classId && assignment.subjectId === subjectId,
   );
@@ -94,8 +77,7 @@ function AssignmentForm({
   }, [classId, onClassChange, visibleClasses]);
 
   useEffect(() => {
-    if (!subjects.some((item) => item.id === subjectId))
-      setSubjectId(subjects[0]?.id ?? '');
+    if (!subjects.some((item) => item.id === subjectId)) setSubjectId(subjects[0]?.id ?? '');
   }, [subjectId, subjects]);
 
   const changeAssignment = async (teacherValue: string) => {
@@ -174,25 +156,36 @@ function AssignmentForm({
 }
 
 export default function Screen() {
-  const level = usePermission('I06');
-  const subjects = useListSubjectsQuery();
-  const classes = useListClassesQuery();
-  const staff = useListTeachersQuery();
+  const token = useAppSelector((state) => state.auth.token);
+  const me = useGetMeQuery(undefined, { skip: !token });
+  const level = me.data?.permissions.I06;
+  const hasAccess = Boolean(level);
+  const subjects = useListSubjectsQuery(undefined, { skip: !hasAccess });
+  const classes = useListClassesQuery(undefined, { skip: !hasAccess });
+  const staff = useListTeachersQuery(undefined, { skip: !hasAccess });
   const [classId, setClassId] = useState('');
 
   useEffect(() => {
-    if (!classId && classes.data?.items.length)
-      setClassId(classes.data.items[0].id);
+    if (!classId && classes.data?.items.length) setClassId(classes.data.items[0].id);
   }, [classId, classes.data]);
 
-  const assignments = useGetTeachingAssignmentsQuery(classId, { skip: !classId });
+  const assignments = useGetTeachingAssignmentsQuery(classId, {
+    skip: !hasAccess || !classId,
+  });
   const forbidden =
     (subjects.error as { status?: number } | undefined)?.status === 403 ||
     (classes.error as { status?: number } | undefined)?.status === 403 ||
     (staff.error as { status?: number } | undefined)?.status === 403 ||
     (assignments.error as { status?: number } | undefined)?.status === 403;
 
-  if (forbidden) return <ForbiddenState />;
+  if (me.isLoading) {
+    return (
+      <div className="min-h-full bg-page p-6">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+  if (!hasAccess || forbidden) return <ForbiddenState />;
 
   const error = subjects.error ?? classes.error ?? staff.error ?? assignments.error;
   if (subjects.isError || classes.isError || staff.isError || assignments.isError) {
@@ -234,10 +227,7 @@ export default function Screen() {
                 value: 'subjects',
                 label: 'מקצועות',
                 content: (
-                  <SubjectList
-                    subjects={subjects.data?.items ?? []}
-                    loading={subjects.isLoading}
-                  />
+                  <SubjectList subjects={subjects.data?.items ?? []} loading={subjects.isLoading} />
                 ),
               },
               {

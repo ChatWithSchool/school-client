@@ -1,10 +1,11 @@
 import { apiSlice } from './apiSlice';
-import type { Page } from './types';
+import type { Page, TeachingAssignment } from './types';
+
+export type { TeachingAssignment } from './types';
 
 export type Subject = { id: string; name: string; code: string; grades: string[] };
 export type TeachingClass = { id: string; name: string; grade: string };
 export type TeachingTeacher = { id: string; firstName: string; lastName: string };
-export type TeachingAssignment = { classId: string; subjectId: string; teacherId: string };
 export type UpdateTeachingAssignmentInput = {
   classId: string;
   subjectId: string;
