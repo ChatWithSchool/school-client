@@ -127,11 +127,17 @@ describe('TimetableEditScreen (T02)', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('התנגשות כיתה');
   });
 
-  test('saves a valid lesson without showing an error', async () => {
+    test('saves a valid lesson and shows it in the grid', async () => {
     renderScreen();
-    // משבצת פנויה: שעה אחרת באותו יום
-    const freeHour = Number(existing.hour) === 7 ? 6 : Number(existing.hour) + 1;
-    await fillAndSave({ ...base(), hour: freeHour });
+    // משבצת ריקה לגמרי: יום ו' שיעור 1, בלי שיעורים קיימים
+    await fillAndSave({ ...base(), day: DAYS[5], hour: 1 });
+
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: new RegExp(`${DAYS[5]}.*${HOURS[0].label}.*${SUBJECT_OPTIONS[0].label}`),
+      })
+    ).toBeInTheDocument();
   });
 });
+
