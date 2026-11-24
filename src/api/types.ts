@@ -122,6 +122,8 @@ export type GradeFeedback = {
 export type GradeChange = {
   id: string;
   gradeId: string;
+  studentId: string;
+  assessmentId: string;
   changedBy: string;
   changedByName: string;
   oldScore: number | null;
