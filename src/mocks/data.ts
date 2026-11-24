@@ -41,8 +41,27 @@ export let announcements: Announcement[] = seed();
 /** Puts all the mock data back to the seed (the test setup calls it after every test). */
 export const resetData = (): void => {
   announcements = seed();
+  t03UncoveredLessons = seedUncovered();
   resetShared();
 };
 export const addAnnouncement = (a: Announcement): void => {
   announcements = [a, ...announcements];
+};
+
+/* T03: substitutes demo data */
+export const t03AvailableTeachers = [
+  { id: 't1', name: 'דנה כהן', subjects: 'מתמטיקה, פיזיקה', hoursThatDay: 3 },
+  { id: 't2', name: 'רות לוי', subjects: 'אנגלית', hoursThatDay: 2 },
+  { id: 't3', name: 'מיכל אברהם', subjects: 'תנ"ך, היסטוריה', hoursThatDay: 4 },
+];
+
+const seedUncovered = () => [
+  { id: 'l1', lessonNumber: 3, className: 'ז׳1', subject: 'מתמטיקה', absentTeacher: 'שרה גולד' },
+  { id: 'l2', lessonNumber: 5, className: 'ח׳2', subject: 'אנגלית', absentTeacher: 'שרה גולד' },
+];
+
+/** Lessons without a teacher. A substitution removes the lesson from this list. */
+export let t03UncoveredLessons = seedUncovered();
+export const removeUncoveredLesson = (id: string): void => {
+  t03UncoveredLessons = t03UncoveredLessons.filter((l) => l.id !== id);
 };
