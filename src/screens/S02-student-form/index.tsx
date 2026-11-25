@@ -118,9 +118,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function StudentFormPage() {
-
   const permissionLevel = usePermission('students');
-  const canWrite = String(permissionLevel) === 'write';
+  const hasWriteAccess = String(permissionLevel) === 'write';
   const { isLoading: isMeLoading } = useGetMeQuery();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('id');
@@ -141,11 +140,11 @@ export default function StudentFormPage() {
   latestForm.current = form;
 
   const { data: student, error: studentError } = useGetStudentQuery(editId ?? '', {
-    skip: !editId || !canWrite,
+    skip: !editId || !hasWriteAccess,
     refetchOnMountOrArgChange: true,
   });
-  const { data: classesData } = useGetClassesQuery(undefined, { skip: !canWrite });
-  const { data: tagsData } = useGetStudentTagsQuery(undefined, { skip: !canWrite });
+  const { data: classesData } = useGetClassesQuery(undefined, { skip: !hasWriteAccess });
+  const { data: tagsData } = useGetStudentTagsQuery(undefined, { skip: !hasWriteAccess });
   const [checkDuplicate] = useLazyCheckStudentDuplicateQuery();
   const [createStudent, { isLoading: isCreating }] = useCreateStudentMutation();
   const [updateStudent, { isLoading: isUpdating }] = useUpdateStudentMutation();
@@ -160,7 +159,9 @@ export default function StudentFormPage() {
   );
   const tagOptions = useMemo(() => (tagsData?.items ?? []).map((t) => t.name), [tagsData]);
 
-  const loadError = studentError ? getErrorMessage(studentError, 'שגיאה בטעינת נתוני התלמיד') : null;
+  const loadError = studentError
+    ? getErrorMessage(studentError, 'שגיאה בטעינת נתוני התלמיד')
+    : null;
 
   // מילוי הטופס פעם אחת כשנתוני התלמיד מגיעים (מצב עריכה)
   useEffect(() => {
@@ -211,7 +212,7 @@ export default function StudentFormPage() {
     );
   }
 
-  if (!canWrite) {
+  if (!hasWriteAccess) {
     return <ForbiddenState />;
   }
 
