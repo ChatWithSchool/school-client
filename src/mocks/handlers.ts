@@ -15,6 +15,7 @@ import { inviteHandlers } from './invites';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
+import { studentFormHandlers } from './studentForm';
 import { teachingHandlers } from './teaching';
 
 /**
@@ -53,6 +54,7 @@ export const handlers = [
     if (!user) return err(401, 'UNAUTHENTICATED', 'נדרשת התחברות');
     return HttpResponse.json({ items: MOCK_TERMS });
   }),
+
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     const user = USERS[email.trim().toLowerCase()];
@@ -161,6 +163,7 @@ export const handlers = [
     });
   }),
 
+  ...studentFormHandlers,
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
