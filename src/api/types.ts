@@ -3,6 +3,25 @@ export type Page<T> = { items: T[]; total: number; page: number; size: number };
 /** A list without paging (the *List schemas in the contract). */
 export type List<T> = { items: T[] };
 
+export type SchoolClass = {
+  id: string;
+  name: string;
+  grade: string;
+  homeroomTeacherId?: string;
+  studentCount?: number;
+};
+
+export type Student = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationalId: string;
+  birthDate?: string;
+  classId?: string;
+  tags?: string[];
+  status?: 'active' | 'inactive';
+};
+
 export type ApiErrorBody = {
   error: { code: string; message: string; details?: { field: string; message: string }[] };
 };

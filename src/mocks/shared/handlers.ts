@@ -34,6 +34,40 @@ function dateParam(url: URL, name: string): string | undefined | null {
 }
 
 export const sharedHandlers = [
+  http.get('*/api/classes', ({ request }) => {
+    const denied = unauthenticated(request);
+    if (denied) return denied;
+    return HttpResponse.json(
+      pageOf(
+        CLASSES.map((cls) => ({
+          id: cls.id,
+          name: cls.name,
+          grade: cls.grade,
+          homeroomTeacherId: cls.homeroomTeacherId,
+          studentCount: shared.students.filter((student) => student.classId === cls.id).length,
+        })),
+      ),
+    );
+  }),
+
+  http.get('*/api/students', ({ request }) => {
+    const denied = unauthenticated(request);
+    if (denied) return denied;
+    const classId = new URL(request.url).searchParams.get('class');
+    const items = shared.students
+      .filter((student) => !classId || student.classId === classId)
+      .map((student) => ({
+        id: student.id,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        nationalId: `000000${student.id.replace(/\D/g, '')}`,
+        classId: student.classId,
+        tags: student.tags,
+        status: 'active' as const,
+      }));
+    return HttpResponse.json(pageOf(items));
+  }),
+
   http.get('*/api/rooms', ({ request }) => {
     const denied = unauthenticated(request);
     if (denied) return denied;
