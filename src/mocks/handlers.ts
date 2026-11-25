@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import type { Announcement } from '../api/types';
 import { assessmentHandlers } from './assessments';
+import { eventHandlers } from './events';
 import {
   DEMO_PASSWORD,
   USERS,
@@ -160,7 +161,7 @@ export const handlers = [
       assignedBy: userOf(request)?.email ?? '',
     });
   }),
-
+  ...eventHandlers,
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
