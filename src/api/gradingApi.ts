@@ -17,23 +17,25 @@ export type PutGradingWeightsBody = {
   weights: WeightEntry[];
 };
 
-export const gradingApi = apiSlice.injectEndpoints({
-  endpoints: (build) => ({
-    getGradingWeights: build.query<
-      { items: GradingWeight[] },
-      { gradeLevel?: string; subjectId?: string; termId?: string }
-    >({
-      query: (params) => ({
-        url: '/grading/weights',
-        params,
+export const gradingApi = apiSlice
+  .enhanceEndpoints({ addTagTypes: ['GradingWeights'] })
+  .injectEndpoints({
+    endpoints: (build) => ({
+      getGradingWeights: build.query<
+        { items: GradingWeight[] },
+        { gradeLevel?: string; subjectId?: string; termId?: string }
+      >({
+        query: (params) => ({
+          url: '/grading/weights',
+          params,
+        }),
+        providesTags: ['GradingWeights'],
       }),
-      providesTags: ['GradingWeights'],
+      putGradingWeights: build.mutation<void, PutGradingWeightsBody>({
+        query: (body) => ({ url: '/grading/weights', method: 'PUT', body }),
+        invalidatesTags: ['GradingWeights'],
+      }),
     }),
-    putGradingWeights: build.mutation<void, PutGradingWeightsBody>({
-      query: (body) => ({ url: '/grading/weights', method: 'PUT', body }),
-      invalidatesTags: ['GradingWeights'],
-    }),
-  }),
-});
+  });
 
 export const { useGetGradingWeightsQuery, usePutGradingWeightsMutation } = gradingApi;

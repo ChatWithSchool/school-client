@@ -47,7 +47,6 @@ export const apiSlice = createApi({
     'Grades',
     'Schedule',
     'Users',
-    'GradingWeights',
   ],
   endpoints: () => ({}),
 });
