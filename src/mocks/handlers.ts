@@ -15,6 +15,7 @@ import { inviteHandlers } from './invites';
 import { landingFor, permissionsFor } from './permissions';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
+import { subjectsAssignmentsHandlers } from './subjectsAssignments';
 import { teachingHandlers } from './teaching';
 
 /**
@@ -162,6 +163,7 @@ export const handlers = [
   }),
 
   ...sharedHandlers,
+  ...subjectsAssignmentsHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
 ];
