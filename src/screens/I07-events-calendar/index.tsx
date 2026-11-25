@@ -8,6 +8,7 @@ import {
   Alert,
   Badge,
   Button,
+  Card,
   DatePicker,
   EmptyState,
   Modal,
@@ -92,7 +93,7 @@ export default function Screen() {
   const token = useAppSelector((state) => state.auth.token);
   const { isLoading: loadingPermissions } = useGetMeQuery(undefined, { skip: !token });
 
-  const { data, isError, refetch } = useListEventsQuery();
+  const { data, isError } = useListEventsQuery();
   const [createEvent] = useCreateEventMutation();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -146,7 +147,6 @@ export default function Screen() {
         endDate: form.end,
         gradeLevels: form.gradeLevels,
       }).unwrap();
-      await refetch();
       return true;
     } catch {
       setFormError('אירעה שגיאה בשמירה. נסו שוב.');
@@ -157,7 +157,7 @@ export default function Screen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="יומן בית ספרי"
+        title="יומן אירועים בית ספרי"
         subtitle="חגים, אירועים, ימי הורים וחופשות"
         actions={canManage ? <Button onClick={openForm}>הוספת אירוע</Button> : undefined}
       />
@@ -173,6 +173,17 @@ export default function Screen() {
           empty={<EmptyState variant="first-use" title="אין אירועים ביומן" />}
         />
       )}
+
+      <Card padding="M">
+        <h2 className="mb-3 text-h2 text-fg">מקרא סוגי אירועים</h2>
+        <ul className="flex flex-wrap gap-3">
+          {eventTypes.map((item) => (
+            <li key={item.value}>
+              <Badge tone={item.tone}>{item.label}</Badge>
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <Modal
         open={isFormOpen}

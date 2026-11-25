@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { SchoolEvent } from '../../api/types';
 import { server } from '../../mocks/server';
@@ -49,7 +49,8 @@ describe('I07 events list', () => {
     renderWithProviders(<Screen />, { token: MANAGER });
 
     expect(await screen.findByText('פסח')).toBeInTheDocument();
-    expect(screen.getByText('חג')).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('חג')).toBeInTheDocument();
     expect(screen.getByText('21/04/2027')).toBeInTheDocument();
     expect(screen.getByText('כל המוסד')).toBeInTheDocument();
     expect(screen.getByText('ערב הורים')).toBeInTheDocument();
@@ -61,6 +62,13 @@ describe('I07 events list', () => {
     renderWithProviders(<Screen />, { token: MANAGER });
 
     expect(await screen.findByText('אין אירועים ביומן')).toBeInTheDocument();
+  });
+
+  it('shows the legend of the event types', async () => {
+    useEvents(EVENTS);
+    renderWithProviders(<Screen />, { token: MANAGER });
+
+    expect(await screen.findByRole('heading', { name: 'מקרא סוגי אירועים' })).toBeInTheDocument();
   });
 
   it('shows an error when loading the events fails', async () => {
