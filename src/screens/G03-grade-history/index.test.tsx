@@ -33,14 +33,14 @@ describe('G03 grade history screen', () => {
     expect(await screen.findByText('אין נתוני היסטוריה להצגה.')).toBeInTheDocument();
   });
 
-
-    it('shows an error state when the server fails', async () => {
-    server.use(http.get('*/grades/:gradeId/history', () => new HttpResponse(null, { status: 500 })));
+  it('shows an error state when the server fails', async () => {
+    server.use(
+      http.get('*/grades/:gradeId/history', () => new HttpResponse(null, { status: 500 })),
+    );
     renderWithProviders(<Screen />, { token: MANAGER });
 
     expect(await screen.findByText('לא ניתן לטעון את ההיסטוריה.')).toBeInTheDocument();
   });
-
 
   it('shows a forbidden state when the user has no permission', async () => {
     renderWithProviders(<Screen />, { token: PARENT });

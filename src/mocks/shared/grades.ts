@@ -102,45 +102,45 @@ export function seedGrading(students: MockStudent[]): Seed {
       createdAt: '2026-10-22T12:30:00.000Z',
     },
   ];
-  
+
   const gradeHistory: GradeChange[] = [
-  {
-    id: 'gh-1',
-    gradeId: 'grd-asm-1-stu-17',
-    studentId: 'stu-17',
-    assessmentId: 'asm-1',
-    changedBy: STAFF_ID.mathH1,
-    changedByName: 'עמית כהן',
-    oldScore: 78,
-    newScore: 85,
-    reason: 'השלמת מבחן',
-    createdAt: '2026-10-16T11:20:00.000Z',
-  },
-  {
-    id: 'gh-2',
-    gradeId: 'grd-asm-1-stu-17',
-    studentId: 'stu-17',
-    assessmentId: 'asm-1',
-    changedBy: STAFF_ID.mathH1,
-    changedByName: 'עמית כהן',
-    oldScore: 65,
-    newScore: 78,
-    reason: 'בדיקת עבודה',
-    createdAt: '2026-10-14T09:05:00.000Z',
-  },
-  {
-    id: 'gh-3',
-    gradeId: 'grd-asm-2-stu-19',
-    studentId: 'stu-19',
-    assessmentId: 'asm-2',
-    changedBy: STAFF_ID.eng,
-    changedByName: 'מור דהן',
-    oldScore: 90,
-    newScore: 87,
-    reason: 'תיקון שגיאת חישוב',
-    createdAt: '2026-10-10T15:40:00.000Z',
-  },
-];
+    {
+      id: 'gh-1',
+      gradeId: 'grd-asm-1-stu-17',
+      studentId: 'stu-17',
+      assessmentId: 'asm-1',
+      changedBy: STAFF_ID.mathH1,
+      changedByName: 'עמית כהן',
+      oldScore: 78,
+      newScore: 85,
+      reason: 'השלמת מבחן',
+      createdAt: '2026-10-16T11:20:00.000Z',
+    },
+    {
+      id: 'gh-2',
+      gradeId: 'grd-asm-1-stu-17',
+      studentId: 'stu-17',
+      assessmentId: 'asm-1',
+      changedBy: STAFF_ID.mathH1,
+      changedByName: 'עמית כהן',
+      oldScore: 65,
+      newScore: 78,
+      reason: 'בדיקת עבודה',
+      createdAt: '2026-10-14T09:05:00.000Z',
+    },
+    {
+      id: 'gh-3',
+      gradeId: 'grd-asm-2-stu-19',
+      studentId: 'stu-19',
+      assessmentId: 'asm-2',
+      changedBy: STAFF_ID.eng,
+      changedByName: 'מור דהן',
+      oldScore: 90,
+      newScore: 87,
+      reason: 'תיקון שגיאת חישוב',
+      createdAt: '2026-10-10T15:40:00.000Z',
+    },
+  ];
 
   return { assessments, grades, gradeFeedback, gradeHistory };
 }
