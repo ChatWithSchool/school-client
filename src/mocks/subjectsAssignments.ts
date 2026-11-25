@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { authz, err } from './http';
 import { CLASSES, STAFF, SUBJECTS, shared } from './shared';
 
-const pageOf = <T,>(items: T[]) => ({
+const pageOf = <T>(items: T[]) => ({
   items,
   total: items.length,
   page: 1,
