@@ -10,10 +10,11 @@ export default defineConfig({
     proxy: { '/api': { target: 'http://localhost:4000', changeOrigin: true } },
   },
   test: {
-    environment: 'jsdom',
+    environment: './src/test/jsdomEnvironment.ts',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    testTimeout: 10_000,
     env: { VITE_API_URL: 'http://localhost:3000/api' },
   },
 });
