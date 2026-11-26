@@ -119,6 +119,19 @@ export type GradeFeedback = {
   createdAt: string;
 };
 
+export type GradeChange = {
+  id: string;
+  gradeId: string;
+  studentId: string;
+  assessmentId: string;
+  changedBy: string;
+  changedByName: string;
+  oldScore: number | null;
+  newScore: number | null;
+  reason: string | null;
+  createdAt: string;
+};
+
 export type AttendanceRecord = {
   id: string;
   classId: string;

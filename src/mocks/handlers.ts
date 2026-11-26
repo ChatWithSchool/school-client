@@ -13,6 +13,7 @@ import {
 import { authz, err, userOf } from './http';
 import { inviteHandlers } from './invites';
 import { landingFor, permissionsFor } from './permissions';
+import { gradeHandlers } from './grades';
 import { joinInviteHandlers } from './joinInvite';
 import { sharedHandlers } from './shared/handlers';
 import { teachingHandlers } from './teaching';
@@ -164,4 +165,5 @@ export const handlers = [
   ...sharedHandlers,
   ...teachingHandlers,
   ...assessmentHandlers,
+  ...gradeHandlers,
 ];
