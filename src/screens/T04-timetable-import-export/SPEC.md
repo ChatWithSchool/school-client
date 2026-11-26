@@ -17,6 +17,8 @@
 
 כשיש סתירה בין המפרט המלא להיקף v1-lite, v1-lite קובע.
 
+המסך מציג כרגע זרימת ייבוא מדומה ותבנית CSV מקומית לצורך התאמה לפריים בלבד. אין חיבור ל-API ייבוא, והזרימה אינה חלק מהיקף v1-lite.
+
 ## אזורי המסך
 
 - **פעולות** (actions): הורדת תבנית · ייצוא נוכחית · ייבוא מקובץ
@@ -62,10 +64,9 @@ props ודוגמאות לכל רכיב: מדריך הרכיבים המשותפי
 
 ## API
 
-- `GET /schedule/template`
-- `POST /schedule/import/validate`
-- `POST /schedule/import/commit`
-  החוזה המלא ב-`openapi/openapi.yaml`.
+- **v1-lite:** `GET /lessons` לקריאת השיעורים שמיוצאים לקובץ CSV.
+- **נדחה:** `GET /schedule/template`, `POST /schedule/import/validate`,
+  `POST /schedule/import/commit`. החוזה המלא ב-`openapi/openapi.yaml`.
 
 ## אוספים (Mongoose)
 
