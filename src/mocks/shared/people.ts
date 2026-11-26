@@ -22,6 +22,7 @@ const FIRST = [
   'נוי',
   'דור',
 ];
+
 const LAST = [
   'כהן',
   'לוי',
@@ -40,6 +41,7 @@ const LAST = [
   'אברהמי',
   'סבן',
 ];
+
 const FIRST_EN = [
   'noam',
   'yuval',
@@ -58,6 +60,7 @@ const FIRST_EN = [
   'noy',
   'dor',
 ];
+
 const LAST_EN = [
   'cohen',
   'levi',
@@ -77,8 +80,20 @@ const LAST_EN = [
   'saban',
 ];
 
-export type MockClass = { id: string; name: string; grade: string; homeroomTeacherId: string };
-export type MockSubject = { id: string; name: string; code: string; grades: string[] };
+export type MockClass = {
+  id: string;
+  name: string;
+  grade: string;
+  homeroomTeacherId: string;
+};
+
+export type MockSubject = {
+  id: string;
+  name: string;
+  code: string;
+  grades: string[];
+};
+
 export type MockStaff = {
   id: string;
   firstName: string;
@@ -88,13 +103,30 @@ export type MockStaff = {
   classIds: string[];
   status: 'active' | 'disabled';
 };
+
+export type MockGuardian = {
+  name: string;
+  relation?: string;
+  phone?: string;
+  email?: string;
+  userId?: string;
+};
+
 export type MockStudent = {
   id: string;
   firstName: string;
   lastName: string;
   classId: string;
+  nationalId: string;
+  /** YYYY-MM-DD */
+  birthDate?: string;
+  address?: string;
+  notes?: string;
+  status: 'active' | 'inactive';
   /** tag labels, as in Student.tags in the contract */
   tags: string[];
+  /** the linked parents, as Student.guardians in the contract */
+  guardians: MockGuardian[];
 };
 
 export const SUBJECTS: MockSubject[] = [
@@ -119,6 +151,7 @@ export const CLASS_ID: Record<string, string> = {
 };
 
 const subjectId = (code: string) => `sub-${code.toLowerCase()}`;
+
 const staffEmail = (i: number) =>
   `${FIRST_EN[(i * 3 + 1) % 16]}.${LAST_EN[(i * 7 + 2) % 16]}@school.example`;
 
@@ -160,7 +193,15 @@ export const STAFF_ID = {
 };
 
 // homeroom teacher (index in STAFF) of each class, as HOMEROOM in the server seed
-const HOMEROOM: Record<string, number> = { ז1: 5, ז2: 6, ח1: 2, ח2: 3, ח3: 4, ט1: 7 };
+const HOMEROOM: Record<string, number> = {
+  ז1: 5,
+  ז2: 6,
+  ח1: 2,
+  ח2: 3,
+  ח3: 4,
+  ט1: 7,
+};
+
 export const CLASSES: MockClass[] = Object.entries(HOMEROOM).map(([name, i]) => ({
   id: CLASS_ID[name],
   name,
@@ -169,26 +210,67 @@ export const CLASSES: MockClass[] = Object.entries(HOMEROOM).map(([name, i]) => 
 }));
 
 // students are numbered across the classes in this order, as CLASS_SIZES in the server seed
-const CLASS_SIZES: Record<string, number> = { ז1: 8, ז2: 8, ח1: 12, ח2: 10, ח3: 10, ט1: 12 };
+const CLASS_SIZES: Record<string, number> = {
+  ז1: 8,
+  ז2: 8,
+  ח1: 12,
+  ח2: 10,
+  ח3: 10,
+  ט1: 12,
+};
+
+/** A valid Israeli id number (with the check digit) for the i-th student. */
+const nationalIdOf = (i: number): string => {
+  const base = String(30000000 + i * 137).padStart(8, '0');
+  const sum = [...base].reduce((acc, d, k) => {
+    const p = Number(d) * (k % 2 === 0 ? 1 : 2);
+    return acc + (p > 9 ? p - 9 : p);
+  }, 0);
+  return base + String((10 - (sum % 10)) % 10);
+};
+
+const BIRTH_YEAR: Record<string, number> = {
+  ז: 2013,
+  ח: 2012,
+  ט: 2011,
+};
 
 /** Student ids are 'stu-1', 'stu-2' ... in the order of the server seed. */
 export function seedStudents(): MockStudent[] {
   const out: MockStudent[] = [];
   let i = 0;
+
   for (const [className, size] of Object.entries(CLASS_SIZES)) {
     for (let k = 0; k < size; k++, i++) {
       // the server seed tags every ninth student; stu-5 gets one more label for the demo
       const tags = i % 9 === 4 ? ['מעקב'] : [];
       if (i === 4) tags.push('תגבור קריאה');
+
       out.push({
         id: `stu-${i + 1}`,
         firstName: FIRST[i % 16],
         lastName: LAST[(i * 5 + 3) % 16],
         classId: CLASS_ID[className],
+        nationalId: nationalIdOf(i),
+        birthDate: `${BIRTH_YEAR[className[0]]}-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 27) + 1).padStart(2, '0')}`,
+        address: `רחוב הדוגמה ${i + 1}, תל אביב`,
+        status: 'active',
         tags,
+        guardians:
+          i === 0
+            ? [
+                {
+                  name: 'רונית לוי',
+                  relation: 'אמא',
+                  email: 'ronit.levi@example.com',
+                  userId: 'usr-ronit-levi',
+                },
+              ]
+            : [],
       });
     }
   }
+
   return out;
 }
 
