@@ -4,6 +4,7 @@ import { DEMO_PASSWORD, USERS, addAnnouncement, announcements } from './data';
 import { authz, err, userOf } from './http';
 import { landingFor, permissionsFor } from './permissions';
 import { sharedHandlers } from './shared/handlers';
+import { myPermissionsHandlers } from './myPermissions';
 
 /**
  * Mock API. Add handlers for your endpoints so your screen works before the server is ready.
@@ -84,4 +85,5 @@ export const handlers = [
   }),
 
   ...sharedHandlers,
+    ...myPermissionsHandlers,
 ];
